@@ -2,20 +2,142 @@
 const fs = require('fs');
 const path = require('path');
 
+function createContext(interaction, args = []) {
+    // Check if this is a slash command interaction
+    const isSlashCommand = interaction && typeof interaction.reply === 'function' && interaction.commandName;
+    // Check if this is a message
+    const isMessage = interaction && interaction.author && interaction.channel && typeof interaction.channel.send === 'function';
+    
+    if (!isSlashCommand && !isMessage) {
+        console.error('Invalid interaction type:', interaction);
+        return null;
+    }
+    
+    return {
+        // Common properties
+        user: isSlashCommand ? interaction.user : interaction.author,
+        guild: interaction.guild,
+        channel: interaction.channel,
+        member: interaction.member,
+        
+        // Command-specific properties
+        args: isSlashCommand ? [] : args, // For message commands
+        options: isSlashCommand ? interaction.options : null, // For slash commands
+        isSlashCommand,
+        isMessage,
+        
+        // Unified response methods
+        reply: async (content) => {
+            if (isSlashCommand) {
+                if (interaction.replied || interaction.deferred) {
+                    return interaction.editReply(content);
+                }
+                return interaction.reply(content);
+            } else if (isMessage) {
+                return interaction.channel.send(content);
+            }
+        },
+        
+        editReply: async (content) => {
+            if (isSlashCommand) {
+                return interaction.editReply(content);
+            } else if (isMessage) {
+                // For message commands, send a new message
+                return interaction.channel.send(content);
+            }
+        },
+        
+        deferReply: async (options = {}) => {
+            if (isSlashCommand) {
+                return interaction.deferReply(options);
+            }
+            // For message commands, we can't defer, so this is a no-op
+        },
+        
+        // Raw interaction/message for advanced usage
+        raw: interaction
+    };
+}
+
 function wrapCommand(cmd) {
-    // Wrap the execute/run function to handle both interaction and message
-    const original = cmd.execute || cmd.run;
+    const originalExecute = cmd.execute || cmd.run;
+    
     return {
         ...cmd,
-        execute: async (ctx) => {
-            const result = await original(ctx);
-            if (!result) return;
-            // If this is a Discord.js interaction (slash command)
-            if (ctx && typeof ctx.reply === 'function') {
-                await ctx.reply(result);
-            // If this is a message (old message command)
-            } else if (ctx && ctx.channel && typeof ctx.channel.send === 'function') {
-                await ctx.channel.send(result);
+        execute: async (interaction, args = []) => {
+            const ctx = createContext(interaction, args);
+            
+            if (!ctx) {
+                console.error('Failed to create context for interaction:', interaction);
+                return;
+            }
+            
+            try {
+                // Handle sub commands
+                if (cmd.subcommands && Object.keys(cmd.subcommands).length > 0) {
+                    let subcommandName;
+                    
+                    if (ctx.isSlashCommand) {
+                        subcommandName = ctx.options.getSubcommand(false);
+                        
+                        // If no subcommand provided and we have a default, use it
+                        if (!subcommandName && cmd.defaultSubcommand) {
+                            subcommandName = cmd.defaultSubcommand;
+                        }
+                    } else if (ctx.isMessage) {
+                        if (args.length > 0) {
+                            subcommandName = args[0].toLowerCase();
+                            ctx.args = args.slice(1); // Remove subcommand from args
+                        } else if (cmd.defaultSubcommand) {
+                            // If no args provided and we have a default, use it
+                            subcommandName = cmd.defaultSubcommand;
+                        }
+                    }
+                    
+                    if (subcommandName && cmd.subcommands[subcommandName]) {
+                        const subcommand = cmd.subcommands[subcommandName];
+                        if (subcommand.execute) {
+                            const result = await subcommand.execute(ctx);
+                            if (result) {
+                                await ctx.reply(result);
+                            }
+                            return;
+                        }
+                    }
+                }
+                
+                // Execute main command (fallback)
+                if (originalExecute) {
+                    const result = await originalExecute(ctx);
+                    if (result) {
+                        await ctx.reply(result);
+                    }
+                }
+            } catch (error) {
+                console.error(`Error executing command ${cmd.name}:`, error);
+                
+                // Try to send error message
+                try {
+                    const errorMessage = {
+                        embeds: [{
+                            title: 'Error',
+                            description: 'An error occurred while executing this command.',
+                            color: 0xff0000
+                        }]
+                    };
+                    
+                    if (ctx.isSlashCommand) {
+                        if (interaction.replied || interaction.deferred) {
+                            await interaction.editReply(errorMessage);
+                        } else {
+                            await interaction.reply({ ...errorMessage, ephemeral: true });
+                        }
+                    } else {
+                        await ctx.reply(errorMessage);
+                    }
+                } catch (replyError) {
+                    console.error('Failed to send error message:', replyError);
+                }
             }
         }
     };
@@ -24,18 +146,45 @@ function wrapCommand(cmd) {
 function getModules(dir) {
     let modules = {};
     const items = fs.readdirSync(dir, { withFileTypes: true });
+    
     for (const item of items) {
         if (item.isDirectory()) {
-            // Recursively search subfolders
-            const subModules = getModules(path.join(dir, item.name));
-            modules = { ...modules, ...subModules };
-        } else if (item.isFile() && item.name === 'run.js') {
-            // Import the run.js file and use the folder name as the key
-            const folderName = path.basename(dir);
-            const mod = require(path.join(dir, item.name));
-            modules[folderName] = wrapCommand(mod);
+            const folderPath = path.join(dir, item.name);
+            const runFilePath = path.join(folderPath, 'run.js');
+            
+            // Check if this directory has a run.js file (main command)
+            if (fs.existsSync(runFilePath)) {
+                const folderName = item.name;
+                const mainCommand = require(runFilePath);
+                
+                // Look for subcommands in subdirectories
+                const subcommands = {};
+                const subItems = fs.readdirSync(folderPath, { withFileTypes: true });
+                
+                for (const subItem of subItems) {
+                    if (subItem.isDirectory()) {
+                        const subRunPath = path.join(folderPath, subItem.name, 'run.js');
+                        if (fs.existsSync(subRunPath)) {
+                            const subCommand = require(subRunPath);
+                            subcommands[subItem.name] = subCommand;
+                        }
+                    }
+                }
+                
+                // Attach subcommands to main command if any exist
+                if (Object.keys(subcommands).length > 0) {
+                    mainCommand.subcommands = subcommands;
+                }
+                
+                modules[folderName] = wrapCommand(mainCommand);
+            } else {
+                // Recursively search subfolders if no run.js in current directory
+                const subModules = getModules(folderPath);
+                modules = { ...modules, ...subModules };
+            }
         }
     }
+    
     return modules;
 }
 

@@ -23,7 +23,8 @@ const client = new Client({
   allowedMentions: { parse: ["users", "roles", "everyone"] },
 });
 
-
+// Load helpers and commands
+const helpers = require("./helpers/load.js");
 const commands = require("./commands/load.js");
 const { registerSlashCommands } = require("./commands/slashCommandLoader.js");
 
@@ -59,7 +60,10 @@ client.on("messageCreate", async (message) => {
 
 client.once("ready", async () => {
   console.log(`Logged in as ${client.user.tag}`);
+  
+  // Register slash commands
   await registerSlashCommands();
+  helpers.status.setStatus.startStatusRotation(client, 10000); // Start status rotation every 10 seconds
 });
 
 client.login(process.env.TOKEN);
