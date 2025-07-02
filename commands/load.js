@@ -155,28 +155,38 @@ function getModules(dir) {
             // Check if this directory has a run.js file (main command)
             if (fs.existsSync(runFilePath)) {
                 const folderName = item.name;
-                const mainCommand = require(runFilePath);
-                
-                // Look for subcommands in subdirectories
-                const subcommands = {};
-                const subItems = fs.readdirSync(folderPath, { withFileTypes: true });
-                
-                for (const subItem of subItems) {
-                    if (subItem.isDirectory()) {
-                        const subRunPath = path.join(folderPath, subItem.name, 'run.js');
-                        if (fs.existsSync(subRunPath)) {
-                            const subCommand = require(subRunPath);
-                            subcommands[subItem.name] = subCommand;
+                try {
+                    const mainCommand = require(runFilePath);
+                    
+                    // Look for subcommands in subdirectories
+                    const subcommands = {};
+                    const subItems = fs.readdirSync(folderPath, { withFileTypes: true });
+                    
+                    for (const subItem of subItems) {
+                        if (subItem.isDirectory()) {
+                            const subRunPath = path.join(folderPath, subItem.name, 'run.js');
+                            if (fs.existsSync(subRunPath)) {
+                                try {
+                                    const subCommand = require(subRunPath);
+                                    subcommands[subItem.name] = subCommand;
+                                    console.log(`✅ Loaded command: ${folderName}.${subItem.name}`);
+                                } catch (error) {
+                                    console.error(`❌ Failed to load subcommand ${folderName}/${subItem.name}:`, error);
+                                }
+                            }
                         }
                     }
+                    
+                    // Attach subcommands to main command if any exist
+                    if (Object.keys(subcommands).length > 0) {
+                        mainCommand.subcommands = subcommands;
+                    }
+                    
+                    modules[folderName] = wrapCommand(mainCommand);
+                    console.log(`✅ Loaded command: ${folderName}`);
+                } catch (error) {
+                    console.error(`❌ Failed to load command ${folderName}:`, error);
                 }
-                
-                // Attach subcommands to main command if any exist
-                if (Object.keys(subcommands).length > 0) {
-                    mainCommand.subcommands = subcommands;
-                }
-                
-                modules[folderName] = wrapCommand(mainCommand);
             } else {
                 // Recursively search subfolders if no run.js in current directory
                 const subModules = getModules(folderPath);
