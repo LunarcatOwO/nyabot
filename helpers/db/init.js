@@ -42,9 +42,7 @@ async function testConnection() {
     console.log(`Connected to database: ${dbConfig.database} on ${dbConfig.host}:${dbConfig.port}`);
     return true;
   } catch (err) {
-    console.error('MariaDB connection failed:', err.message);
-    console.log('Application will continue without database functionality');
-    return false;
+    throw new Error(`Database connection failed: ${err.message}`);
   } finally {
     if (conn) conn.release();
   }
@@ -225,12 +223,10 @@ async function initializeDB() {
       return true;
     } catch (error) {
       console.error('❌ Database initialization failed:', error.message);
-      console.log('⚠️ Running without database functionality');
-      return false;
+      throw new Error(`Database initialization failed: ${error.message}`);
     }
   } else {
-    console.log('⚠️ Running without database functionality');
-    return false;
+    throw new Error('Database connection failed - cannot start bot');
   }
 }
 
