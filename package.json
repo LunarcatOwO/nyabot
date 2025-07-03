@@ -1,6 +1,6 @@
 {
   "name": "nyabot",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A utlity discord bot made by LunarcatOwO",
   "main": "index.js",
   "scripts": {
