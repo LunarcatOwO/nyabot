@@ -3,7 +3,7 @@ exports.options = [
     {
         name: 'user',
         type: 6, // USER type
-        description: 'The user to show info for',
+        description: 'The user to show info for (mention or user ID)',
         required: false
     }
 ];
@@ -26,17 +26,24 @@ exports.execute = async (ctx) => {
         if (mentions && mentions.size > 0) {
             targetUser = mentions.first();
         } else if (ctx.args.length > 0) {
-            // Try to get user by ID
-            try {
-                targetUser = await ctx.raw.client.users.fetch(ctx.args[0]);
-            } catch {
-                targetUser = ctx.user;
+            // Try to get user by ID - check if it's a valid snowflake ID
+            const userInput = ctx.args[0];
+            const snowflakeRegex = /^\d{17,19}$/;
+            
+            if (snowflakeRegex.test(userInput)) {
+                try {
+                    targetUser = await ctx.raw.client.users.fetch(userInput);
+                } catch {
+                    return { content: `❌ Could not find user with ID: \`${userInput}\`` };
+                }
+            } else {
+                return { content: `❌ Invalid user ID format. Please provide a valid Discord user ID (17-19 digits).` };
             }
         } else {
             targetUser = ctx.user;
         }
         
-        if (ctx.guild) {
+        if (ctx.guild && targetUser) {
             try {
                 targetMember = await ctx.guild.members.fetch(targetUser.id);
             } catch {
@@ -81,6 +88,12 @@ exports.execute = async (ctx) => {
                 inline: false
             }
         );
+    } else if (ctx.guild) {
+        embed.fields.push({
+            name: 'Server Status',
+            value: '❌ Not in this server',
+            inline: true
+        });
     }
     
     return { embeds: [embed] };

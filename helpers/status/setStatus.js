@@ -63,7 +63,7 @@ function setRandomStatus(client) {
         { activity: 'to music', type: 'LISTENING' },
         { activity: 'with Discord.js', type: 'PLAYING' },
         { activity: 'with cozy', type: 'COMPETING' },
-        { activity: 'user commands', type: 'WATCHING' }
+        { activity: 'your every move', type: 'WATCHING' }
     ];
 
     const randomStatus = statusOptions[Math.floor(Math.random() * statusOptions.length)];
