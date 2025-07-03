@@ -1,6 +1,6 @@
 services:
   bot:
-    image: ghcr.io/LunarcatOwO/Nyabot:latest
+    image: ghcr.io/LunarcatOwO/nyabot:latest
     container_name: nyabot
     restart: unless-stopped
     environment:
