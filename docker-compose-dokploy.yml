@@ -12,6 +12,9 @@ services:
       - ENV=production
     networks:
       - dokploy-network
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "com.centurylinklabs.watchtower.scope=nya"
 
 networks:
   dokploy-network:
