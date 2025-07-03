@@ -1,3 +1,4 @@
+exports.name = 'unban';
 exports.description = 'Unban a user from the server';
 exports.options = [
     {

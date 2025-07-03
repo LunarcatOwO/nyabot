@@ -1,3 +1,4 @@
+exports.name = 'banlist';
 exports.description = 'Show all banned users from the server';
 exports.options = [
     {

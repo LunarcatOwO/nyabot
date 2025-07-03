@@ -1,3 +1,4 @@
+exports.name = 'ban';
 exports.description = 'Ban a user from the server';
 exports.options = [
     {
