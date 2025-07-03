@@ -93,7 +93,7 @@ exports.execute = async (ctx) => {
                 return {
                     embeds: [{
                         title: '❌ Invalid Usage',
-                        description: 'Please mention a user or provide a valid user ID.\n\nUsage: `n+moderation ban @user [reason]`',
+                        description: 'Please mention a user or provide a valid user ID.\n\nUsage: `n+ ban @user [reason]`',
                         color: 0xFF0000
                     }]
                 };
@@ -102,7 +102,7 @@ exports.execute = async (ctx) => {
             return {
                 embeds: [{
                     title: '❌ Missing Arguments',
-                    description: 'Please specify a user to ban.\n\nUsage: `n+moderation ban @user [reason]`',
+                    description: 'Please specify a user to ban.\n\nUsage: `n+ ban @user [reason]`',
                     color: 0xFF0000
                 }]
             };

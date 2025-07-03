@@ -59,7 +59,7 @@ exports.execute = async (ctx) => {
             return {
                 embeds: [{
                     title: '❌ Missing Arguments',
-                    description: 'Please specify a user ID to unban.\n\nUsage: `n+moderation unban <user_id> [reason]`',
+                    description: 'Please specify a user ID to unban.\n\nUsage: `n+ unban <user_id> [reason]`',
                     color: 0xFF0000
                 }]
             };
@@ -78,7 +78,7 @@ exports.execute = async (ctx) => {
         return {
             embeds: [{
                 title: '❌ Invalid User ID',
-                description: 'Please provide a valid Discord user ID (17-19 digits).\n\nUsage: `n+moderation unban <user_id> [reason]`',
+                description: 'Please provide a valid Discord user ID (17-19 digits).\n\nUsage: `n+ unban <user_id> [reason]`',
                 color: 0xFF0000
             }]
         };
