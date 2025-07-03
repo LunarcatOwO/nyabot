@@ -1,0 +1,18 @@
+services:
+  bot:
+    image: ghcr.io/LunarcatOwO/Nyabot:latest
+    container_name: nyabot
+    restart: unless-stopped
+    environment:
+      - DB_URL=${DB_URL}
+      - TOKEN=${TOKEN}
+      - CLIENT_ID=${CLIENT_ID}
+      - ROOT_USR=${ROOT_USR}
+      - SENTRY_DSN=${SENTRY_DSN}
+      - NODE_ENV=production
+    networks:
+      - dokploy-network
+
+networks:
+  dokploy-network:
+    external: true
