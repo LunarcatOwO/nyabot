@@ -6,7 +6,7 @@ on:
   pull_request:
     branches: [ main ]
   workflow_dispatch:
-    
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -76,3 +76,12 @@ jobs:
         run: |
           rm -rf /tmp/.buildx-cache
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+      - name: Create and push git tag with SHA
+        if: github.event_name != 'pull_request'
+        run: |
+          TAG_NAME=sha-${GITHUB_SHA::7}
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag $TAG_NAME
+          git push origin $TAG_NAME
