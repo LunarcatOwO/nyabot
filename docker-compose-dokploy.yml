@@ -10,3 +10,9 @@ services:
       - ROOT_USR=${ROOT_USR}
       - SENTRY_DSN=${SENTRY_DSN}
       - NODE_ENV=production
+    networks:
+      - dokploy-network
+
+networks:
+  dokploy-network:
+    external: true
