@@ -30,17 +30,22 @@ const client = new Client({
 const helpers = require("./helpers/load.js");
 const commands = require("./commands/load.js");
 const { registerSlashCommands } = require("./commands/slashCommandLoader.js");
+const { loadInteractions, handleInteraction } = require("./interactions/load.js");
 
 // Slash command interaction handler
 client.on("interactionCreate", async (interaction) => {
-  if (!interaction.isCommand()) return;
-  const command = commands[interaction.commandName];
-  if (!command) return;
-  try {
-    await command.execute(interaction);
-  } catch (err) {
-    console.error(err);
-    await interaction.reply({ content: "There was an error executing that command.", ephemeral: true });
+  if (interaction.isCommand()) {
+    const command = commands[interaction.commandName];
+    if (!command) return;
+    try {
+      await command.execute(interaction);
+    } catch (err) {
+      console.error(err);
+      await interaction.reply({ content: "There was an error executing that command.", ephemeral: true });
+    }
+  } else if (interaction.isButton()) {
+    // Handle button interactions
+    await handleInteraction(interaction);
   }
 });
 
@@ -66,6 +71,9 @@ client.once("ready", async () => {
   
   // Initialize database connection and schema
   await initializeDB();
+  
+  // Load interaction handlers
+  loadInteractions();
   
   // Register slash commands
   await registerSlashCommands();

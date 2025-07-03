@@ -125,16 +125,42 @@ exports.execute = async (ctx) => {
             timestamp: new Date().toISOString()
         };
 
-        // Add navigation hint if there are multiple pages
+        // Create navigation buttons if there are multiple pages
+        let components = [];
         if (totalPages > 1) {
-            const navigationHint = ctx.isSlashCommand ? 
-                `Use \`/banlist page:${page + 1}\` for next page` :
-                `Use \`n+banlist ${page + 1}\` for next page`;
+            const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
             
-            embed.description += `\n\n${page < totalPages ? navigationHint : 'This is the last page.'}`;
+            const buttons = new ActionRowBuilder()
+                .addComponents(
+                    new ButtonBuilder()
+                        .setCustomId(`banlist_nav_first_${page}_${totalPages}_${ctx.guild.id}`)
+                        .setLabel('⏪ First')
+                        .setStyle(ButtonStyle.Secondary)
+                        .setDisabled(page === 1),
+                    new ButtonBuilder()
+                        .setCustomId(`banlist_nav_prev_${page}_${totalPages}_${ctx.guild.id}`)
+                        .setLabel('◀️ Previous')
+                        .setStyle(ButtonStyle.Primary)
+                        .setDisabled(page === 1),
+                    new ButtonBuilder()
+                        .setCustomId(`banlist_nav_next_${page}_${totalPages}_${ctx.guild.id}`)
+                        .setLabel('Next ▶️')
+                        .setStyle(ButtonStyle.Primary)
+                        .setDisabled(page === totalPages),
+                    new ButtonBuilder()
+                        .setCustomId(`banlist_nav_last_${page}_${totalPages}_${ctx.guild.id}`)
+                        .setLabel('Last ⏩')
+                        .setStyle(ButtonStyle.Secondary)
+                        .setDisabled(page === totalPages)
+                );
+            
+            components = [buttons];
         }
 
-        return { embeds: [embed] };
+        return { 
+            embeds: [embed],
+            components: components
+        };
 
     } catch (error) {
         console.error('Error fetching ban list:', error);
