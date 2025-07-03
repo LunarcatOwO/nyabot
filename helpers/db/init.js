@@ -185,6 +185,27 @@ async function setupDatabase() {
       )
     `);
     
+    // Create bans table for tracking user bans across servers
+    await writeToDB(`
+      CREATE TABLE IF NOT EXISTS bans (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id BIGINT NOT NULL,
+        guild_id BIGINT NOT NULL,
+        banned_by BIGINT NOT NULL,
+        reason TEXT,
+        banned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        unbanned_at TIMESTAMP NULL,
+        is_active BOOLEAN DEFAULT TRUE,
+        
+        UNIQUE KEY unique_active_ban (user_id, guild_id, is_active),
+        INDEX idx_user_id (user_id),
+        INDEX idx_guild_id (guild_id),
+        INDEX idx_banned_by (banned_by),
+        INDEX idx_banned_at (banned_at),
+        INDEX idx_is_active (is_active)
+      )
+    `);
+    
     console.log('Database schema setup completed successfully');
   } catch (error) {
     console.error('Database schema setup failed:', error.message);
@@ -331,6 +352,69 @@ async function getDBStats() {
   }
 }
 
+// Log a ban action
+async function logBan(userId, guildId, bannedBy, reason = 'No reason provided') {
+  const query = `
+    INSERT INTO bans (user_id, guild_id, banned_by, reason)
+    VALUES (?, ?, ?, ?)
+    ON DUPLICATE KEY UPDATE
+      banned_by = VALUES(banned_by),
+      reason = VALUES(reason),
+      banned_at = CURRENT_TIMESTAMP,
+      is_active = TRUE
+  `;
+  
+  return await writeToDB(query, [userId, guildId, bannedBy, reason]);
+}
+
+// Log an unban action
+async function logUnban(userId, guildId) {
+  const query = `
+    UPDATE bans 
+    SET unbanned_at = CURRENT_TIMESTAMP, is_active = FALSE
+    WHERE user_id = ? AND guild_id = ? AND is_active = TRUE
+  `;
+  
+  return await writeToDB(query, [userId, guildId]);
+}
+
+// Check if user is banned from a specific guild
+async function isUserBanned(userId, guildId) {
+  const query = `
+    SELECT * FROM bans 
+    WHERE user_id = ? AND guild_id = ? AND is_active = TRUE
+  `;
+  
+  const results = await readFromDB(query, [userId, guildId]);
+  return results.length > 0 ? results[0] : null;
+}
+
+// Get total number of servers a user is banned from
+async function getUserBanCount(userId) {
+  const query = `
+    SELECT COUNT(*) as count 
+    FROM bans 
+    WHERE user_id = ? AND is_active = TRUE
+  `;
+  
+  const results = await readFromDB(query, [userId]);
+  return results[0].count;
+}
+
+// Get all active bans for a user
+async function getUserBans(userId) {
+  const query = `
+    SELECT b.*, g.name as guild_name, u.username as banned_by_username
+    FROM bans b
+    LEFT JOIN guilds g ON b.guild_id = g.id
+    LEFT JOIN users u ON b.banned_by = u.id
+    WHERE b.user_id = ? AND b.is_active = TRUE
+    ORDER BY b.banned_at DESC
+  `;
+  
+  return await readFromDB(query, [userId]);
+}
+
 // Graceful shutdown
 async function closeDB() {
   console.log('🔄 Shutting down database...');
@@ -360,5 +444,12 @@ module.exports = {
   logCommand,
   getBotConfig,
   setBotConfig,
-  getDBStats
+  getDBStats,
+  
+  // Ban tracking functions
+  logBan,
+  logUnban,
+  isUserBanned,
+  getUserBanCount,
+  getUserBans
 };

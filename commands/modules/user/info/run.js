@@ -73,6 +73,21 @@ exports.execute = async (ctx) => {
         timestamp: new Date().toISOString()
     };
     
+    // Check ban status and membership
+    let isUserBannedFromCurrentGuild = false;
+    
+    try {
+        const { isUserBanned } = require('../../../../helpers/db/init');
+        
+        // Check if user is banned from current guild
+        if (ctx.guild) {
+            const banInfo = await isUserBanned(targetUser.id, ctx.guild.id);
+            isUserBannedFromCurrentGuild = !!banInfo;
+        }
+    } catch (dbError) {
+        console.error('Error checking ban status:', dbError);
+    }
+    
     if (targetMember) {
         embed.fields.push(
             {
@@ -89,11 +104,20 @@ exports.execute = async (ctx) => {
             }
         );
     } else if (ctx.guild) {
-        embed.fields.push({
-            name: 'Server Status',
-            value: '❌ Not in this server',
-            inline: true
-        });
+        if (isUserBannedFromCurrentGuild) {
+            embed.fields.push({
+                name: 'Server Status',
+                value: '🔨 **Banned from this server**',
+                inline: true
+            });
+            embed.color = 0xFF0000; // Red color for banned users
+        } else {
+            embed.fields.push({
+                name: 'Server Status',
+                value: '❌ Not in this server',
+                inline: true
+            });
+        }
     }
     
     return { embeds: [embed] };
