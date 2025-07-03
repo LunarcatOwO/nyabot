@@ -11,6 +11,6 @@ COPY helpers/ ./helpers/
 COPY instrument.js ./
 COPY index.js ./
 
-ENV NODE_ENV=production
+ENV ENV=production
 
 CMD ["node", "."]

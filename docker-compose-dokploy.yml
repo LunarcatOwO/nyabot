@@ -9,7 +9,7 @@ services:
       - CLIENT_ID=${CLIENT_ID}
       - ROOT_USR=${ROOT_USR}
       - SENTRY_DSN=${SENTRY_DSN}
-      - NODE_ENV=production
+      - ENV=production
     networks:
       - dokploy-network
 
