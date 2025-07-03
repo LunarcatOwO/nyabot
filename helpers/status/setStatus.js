@@ -58,10 +58,8 @@ function setStatus(client, options = {}) {
  */
 function setRandomStatus(client) {
     const statusOptions = [
-        { activity: 'with commands | n+help', type: 'PLAYING' },
-        { activity: 'over the server', type: 'WATCHING' },
-        { activity: 'to music', type: 'LISTENING' },
-        { activity: 'with Discord.js', type: 'PLAYING' },
+        { activity: 'with commands | n+ help', type: 'PLAYING' },
+        { activity: 'to what you say', type: 'LISTENING' },
         { activity: 'with cozy', type: 'COMPETING' },
         { activity: 'your every move', type: 'WATCHING' }
     ];

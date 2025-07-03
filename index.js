@@ -2,6 +2,9 @@ require("dotenv").config();
 require("./instrument.js");
 const { Client, GatewayIntentBits, Partials } = require("discord.js");
 
+// Import database functions
+const { initializeDB, closeDB } = require('./helpers/db/init');
+
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -61,9 +64,22 @@ client.on("messageCreate", async (message) => {
 client.once("ready", async () => {
   console.log(`Logged in as ${client.user.tag}`);
   
+  // Initialize database connection and schema
+  await initializeDB();
+  
   // Register slash commands
   await registerSlashCommands();
   helpers.status.setStatus.startStatusRotation(client, 10000); // Start status rotation every 10 seconds
 });
+
+// Graceful shutdown handling
+const shutdown = async (signal) => {
+  console.log(`Received ${signal}, shutting down gracefully...`);
+  await closeDB();
+  process.exit(0);
+};
+
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
 
 client.login(process.env.TOKEN);
