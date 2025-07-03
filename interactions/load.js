@@ -38,7 +38,7 @@ function loadInteractionsFromDirectory(dir) {
         if (stat.isDirectory()) {
             // Recursively load from subdirectories
             loadInteractionsFromDirectory(itemPath);
-        } else if (item.endsWith('.js')) {
+        } else if (item.endsWith('.js') && item !== 'load.js') {
             try {
                 // Clear require cache to allow hot reloading
                 delete require.cache[require.resolve(itemPath)];
