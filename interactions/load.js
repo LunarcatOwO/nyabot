@@ -86,8 +86,6 @@ async function handleInteraction(interaction) {
             return;
         }
         
-        console.log(`🔘 Handling interaction: ${interaction.customId} by ${interaction.user.tag}`);
-        
         // Execute the interaction handler
         await handler.execute(interaction);
         
