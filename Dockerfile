@@ -6,7 +6,7 @@ COPY package*.json ./
 RUN npm ci --only=production
 
 COPY commands/ ./commands/
-COPY events/ ./events/
+COPY interactions/ ./interactions/
 COPY helpers/ ./helpers/
 COPY instrument.js ./
 COPY index.js ./
