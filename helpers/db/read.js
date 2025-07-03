@@ -1,7 +1,8 @@
-const { readFromDB } = require('./init');
+// readFromDB will be imported dynamically to avoid circular dependency
 
 // Get user data by key
 async function getUserData(userId, guildId = null, dataKey) {
+  const { readFromDB } = require('./init');
   const query = `
     SELECT data_value 
     FROM user_data 
@@ -14,6 +15,7 @@ async function getUserData(userId, guildId = null, dataKey) {
 
 // Get bot configuration value
 async function getBotConfig(configKey) {
+  const { readFromDB } = require('./init');
   const query = `SELECT config_value FROM bot_config WHERE config_key = ?`;
   const results = await readFromDB(query, [configKey]);
   return results.length > 0 ? results[0].config_value : null;
@@ -21,6 +23,7 @@ async function getBotConfig(configKey) {
 
 // Get database statistics
 async function getDBStats() {
+  const { readFromDB } = require('./init');
   try {
     const userCount = await readFromDB('SELECT COUNT(*) as count FROM users');
     const guildCount = await readFromDB('SELECT COUNT(*) as count FROM guilds');
@@ -39,6 +42,7 @@ async function getDBStats() {
 
 // Check if user is banned from a specific guild
 async function isUserBanned(userId, guildId) {
+  const { readFromDB } = require('./init');
   const query = `
     SELECT * FROM bans 
     WHERE user_id = ? AND guild_id = ? AND is_active = TRUE
@@ -50,6 +54,7 @@ async function isUserBanned(userId, guildId) {
 
 // Get total number of servers a user is banned from
 async function getUserBanCount(userId) {
+  const { readFromDB } = require('./init');
   const query = `
     SELECT COUNT(*) as count 
     FROM bans 
@@ -62,6 +67,7 @@ async function getUserBanCount(userId) {
 
 // Get all active bans for a user
 async function getUserBans(userId) {
+  const { readFromDB } = require('./init');
   const query = `
     SELECT b.*, g.name as guild_name, u.username as banned_by_username
     FROM bans b

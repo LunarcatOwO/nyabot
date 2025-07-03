@@ -247,10 +247,6 @@ async function closeDB() {
   }
 }
 
-// Import separated functions
-const dbRead = require('./read');
-const dbWrite = require('./write');
-
 module.exports = {
   pool,
   testConnection,
@@ -259,11 +255,5 @@ module.exports = {
   writeToDB,
   executeTransaction,
   setupDatabase,
-  closeDB,
-  
-  // Import all read functions
-  ...dbRead,
-  
-  // Import all write functions
-  ...dbWrite
+  closeDB
 };

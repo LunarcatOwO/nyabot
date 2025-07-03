@@ -68,7 +68,18 @@ async function handleInteraction(interaction) {
             return;
         }
         
-        const handler = interactions.get(interaction.customId);
+        // First try exact match
+        let handler = interactions.get(interaction.customId);
+        
+        // If no exact match, try partial matches for dynamic interactions
+        if (!handler) {
+            for (const [customId, interactionHandler] of interactions) {
+                if (interaction.customId.startsWith(customId + '_')) {
+                    handler = interactionHandler;
+                    break;
+                }
+            }
+        }
         
         if (!handler) {
             console.warn(`⚠️ No handler found for interaction: ${interaction.customId}`);

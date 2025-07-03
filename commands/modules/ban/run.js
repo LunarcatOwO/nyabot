@@ -57,12 +57,13 @@ exports.execute = async (ctx) => {
         };
     }
 
-    let targetUser, reason = 'No reason provided', deleteMessageDays = 0;
+    let targetUser, reason = 'No reason provided', deleteMessageSeconds = 0;
 
     if (ctx.isSlashCommand) {
         targetUser = ctx.options.getUser('user');
         reason = ctx.options.getString('reason') || 'No reason provided';
-        deleteMessageDays = ctx.options.getInteger('delete_messages') || 0;
+        const deleteMessageDays = ctx.options.getInteger('delete_messages') || 0;
+        deleteMessageSeconds = deleteMessageDays * 24 * 60 * 60; // Convert days to seconds
     } else if (ctx.isMessage) {
         // For message commands, check for mentions or user ID
         const mentions = ctx.raw.mentions?.users;
@@ -217,13 +218,13 @@ exports.execute = async (ctx) => {
         // Perform the ban
         await ctx.guild.members.ban(targetUser.id, {
             reason: `${reason} | Banned by: ${ctx.user.tag} (${ctx.user.id})`,
-            deleteMessageDays: deleteMessageDays
+            deleteMessageSeconds: deleteMessageSeconds
         });
 
         // Store ban information in database for tracking
         try {
             const db = require('../../../helpers/db');
-            await db.write.logBan(targetUser.id, ctx.guild.id, ctx.user.id, reason);
+            await db.logBan(targetUser.id, ctx.guild.id, ctx.user.id, reason);
         } catch (dbError) {
             console.error('Failed to log ban:', dbError);
         }
@@ -251,7 +252,7 @@ exports.execute = async (ctx) => {
                     },
                     {
                         name: 'Messages Deleted',
-                        value: deleteMessageDays > 0 ? `${deleteMessageDays} day(s)` : 'None',
+                        value: deleteMessageSeconds > 0 ? `${deleteMessageSeconds / (24 * 60 * 60)} day(s)` : 'None',
                         inline: true
                     }
                 ],

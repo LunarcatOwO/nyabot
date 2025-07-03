@@ -1,7 +1,8 @@
-const { writeToDB } = require('./init');
+// writeToDB will be imported dynamically to avoid circular dependency
 
 // Store/update user information
 async function upsertUser(userId, userData) {
+  const { writeToDB } = require('./init');
   const query = `
     INSERT INTO users (id, username, display_name, avatar)
     VALUES (?, ?, ?, ?)
@@ -22,6 +23,7 @@ async function upsertUser(userId, userData) {
 
 // Store/update guild information
 async function upsertGuild(guildId, guildData) {
+  const { writeToDB } = require('./init');
   const query = `
     INSERT INTO guilds (id, name, icon, owner_id, member_count)
     VALUES (?, ?, ?, ?, ?)
@@ -44,6 +46,7 @@ async function upsertGuild(guildId, guildData) {
 
 // Set user data by key
 async function setUserData(userId, guildId = null, dataKey, dataValue) {
+  const { writeToDB } = require('./init');
   const query = `
     INSERT INTO user_data (user_id, guild_id, data_key, data_value)
     VALUES (?, ?, ?, ?)
@@ -57,6 +60,7 @@ async function setUserData(userId, guildId = null, dataKey, dataValue) {
 
 // Log command execution
 async function logCommand(userId, guildId, commandName, success = true, errorMessage = null) {
+  const { writeToDB } = require('./init');
   const query = `
     INSERT INTO command_logs (user_id, guild_id, command_name, success, error_message)
     VALUES (?, ?, ?, ?, ?)
@@ -67,6 +71,7 @@ async function logCommand(userId, guildId, commandName, success = true, errorMes
 
 // Set bot configuration value
 async function setBotConfig(configKey, configValue, description = null) {
+  const { writeToDB } = require('./init');
   const query = `
     INSERT INTO bot_config (config_key, config_value, description)
     VALUES (?, ?, ?)
@@ -81,6 +86,7 @@ async function setBotConfig(configKey, configValue, description = null) {
 
 // Log a ban action
 async function logBan(userId, guildId, bannedBy, reason = 'No reason provided') {
+  const { writeToDB } = require('./init');
   const query = `
     INSERT INTO bans (user_id, guild_id, banned_by, reason)
     VALUES (?, ?, ?, ?)
@@ -96,6 +102,7 @@ async function logBan(userId, guildId, bannedBy, reason = 'No reason provided') 
 
 // Log an unban action
 async function logUnban(userId, guildId) {
+  const { writeToDB } = require('./init');
   const query = `
     UPDATE bans 
     SET unbanned_at = CURRENT_TIMESTAMP, is_active = FALSE

@@ -126,7 +126,7 @@ exports.execute = async (ctx) => {
         // Update database to mark ban as inactive
         try {
             const db = require('../../../helpers/db');
-            await db.write.logUnban(userInput, ctx.guild.id);
+            await db.logUnban(userInput, ctx.guild.id);
         } catch (dbError) {
             console.error('Failed to log unban:', dbError);
         }

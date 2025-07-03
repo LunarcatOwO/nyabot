@@ -3,10 +3,21 @@ exports.description = 'Handle banlist pagination navigation';
 
 exports.execute = async (interaction) => {
     // Parse the button data
-    const [action, currentPage, totalPages, guildId] = interaction.customId.split('_').slice(2);
+    const parts = interaction.customId.split('_');
+    if (parts.length < 6) {
+        return interaction.reply({
+            content: '❌ Invalid button interaction format.',
+            ephemeral: true
+        });
+    }
     
-    const page = parseInt(currentPage);
-    const maxPages = parseInt(totalPages);
+    const action = parts[2];
+    const currentPage = parseInt(parts[3]);
+    const totalPages = parseInt(parts[4]);
+    const guildId = parts[5];
+    
+    const page = currentPage;
+    const maxPages = totalPages;
     
     // Verify the interaction is from the same guild
     if (interaction.guild.id !== guildId) {
