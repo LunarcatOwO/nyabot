@@ -1,7 +1,7 @@
 {
   "name": "nyabot",
-  "version": "1.0.1",
-  "description": "A utlity discord bot made by LunarcatOwO",
+  "version": "0.0.1",
+  "description": "A utility discord bot made by LunarcatOwO",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
