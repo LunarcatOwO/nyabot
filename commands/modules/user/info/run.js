@@ -77,11 +77,11 @@ exports.execute = async (ctx) => {
     let isUserBannedFromCurrentGuild = false;
     
     try {
-        const { isUserBanned } = require('../../../../helpers/db/init');
+        const db = require('../../../../helpers/db');
         
         // Check if user is banned from current guild
         if (ctx.guild) {
-            const banInfo = await isUserBanned(targetUser.id, ctx.guild.id);
+            const banInfo = await db.read.isUserBanned(targetUser.id, ctx.guild.id);
             isUserBannedFromCurrentGuild = !!banInfo;
         }
     } catch (dbError) {

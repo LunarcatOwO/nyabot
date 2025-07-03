@@ -236,185 +236,6 @@ async function initializeDB() {
 
 // Utility functions for common Discord bot operations
 
-// Store/update user information
-async function upsertUser(userId, userData) {
-  const query = `
-    INSERT INTO users (id, username, display_name, avatar)
-    VALUES (?, ?, ?, ?)
-    ON DUPLICATE KEY UPDATE
-      username = VALUES(username),
-      display_name = VALUES(display_name),
-      avatar = VALUES(avatar),
-      updated_at = CURRENT_TIMESTAMP
-  `;
-  
-  return await writeToDB(query, [
-    userId,
-    userData.username,
-    userData.displayName || userData.username,
-    userData.avatar
-  ]);
-}
-
-// Store/update guild information
-async function upsertGuild(guildId, guildData) {
-  const query = `
-    INSERT INTO guilds (id, name, icon, owner_id, member_count)
-    VALUES (?, ?, ?, ?, ?)
-    ON DUPLICATE KEY UPDATE
-      name = VALUES(name),
-      icon = VALUES(icon),
-      owner_id = VALUES(owner_id),
-      member_count = VALUES(member_count),
-      updated_at = CURRENT_TIMESTAMP
-  `;
-  
-  return await writeToDB(query, [
-    guildId,
-    guildData.name,
-    guildData.icon,
-    guildData.ownerId,
-    guildData.memberCount
-  ]);
-}
-
-// Get user data by key
-async function getUserData(userId, guildId = null, dataKey) {
-  const query = `
-    SELECT data_value 
-    FROM user_data 
-    WHERE user_id = ? AND guild_id = ? AND data_key = ?
-  `;
-  
-  const results = await readFromDB(query, [userId, guildId || 0, dataKey]);
-  return results.length > 0 ? results[0].data_value : null;
-}
-
-// Set user data by key
-async function setUserData(userId, guildId = null, dataKey, dataValue) {
-  const query = `
-    INSERT INTO user_data (user_id, guild_id, data_key, data_value)
-    VALUES (?, ?, ?, ?)
-    ON DUPLICATE KEY UPDATE
-      data_value = VALUES(data_value),
-      updated_at = CURRENT_TIMESTAMP
-  `;
-  
-  return await writeToDB(query, [userId, guildId || 0, dataKey, dataValue]);
-}
-
-// Log command execution
-async function logCommand(userId, guildId, commandName, success = true, errorMessage = null) {
-  const query = `
-    INSERT INTO command_logs (user_id, guild_id, command_name, success, error_message)
-    VALUES (?, ?, ?, ?, ?)
-  `;
-  
-  return await writeToDB(query, [userId, guildId, commandName, success, errorMessage]);
-}
-
-// Get bot configuration value
-async function getBotConfig(configKey) {
-  const query = `SELECT config_value FROM bot_config WHERE config_key = ?`;
-  const results = await readFromDB(query, [configKey]);
-  return results.length > 0 ? results[0].config_value : null;
-}
-
-// Set bot configuration value
-async function setBotConfig(configKey, configValue, description = null) {
-  const query = `
-    INSERT INTO bot_config (config_key, config_value, description)
-    VALUES (?, ?, ?)
-    ON DUPLICATE KEY UPDATE
-      config_value = VALUES(config_value),
-      description = VALUES(description),
-      updated_at = CURRENT_TIMESTAMP
-  `;
-  
-  return await writeToDB(query, [configKey, configValue, description]);
-}
-
-// Get database statistics
-async function getDBStats() {
-  try {
-    const userCount = await readFromDB('SELECT COUNT(*) as count FROM users');
-    const guildCount = await readFromDB('SELECT COUNT(*) as count FROM guilds');
-    const commandCount = await readFromDB('SELECT COUNT(*) as count FROM command_logs');
-    
-    return {
-      totalUsers: userCount[0].count,
-      totalGuilds: guildCount[0].count,
-      totalCommands: commandCount[0].count
-    };
-  } catch (error) {
-    console.error('Error getting database stats:', error.message);
-    return null;
-  }
-}
-
-// Log a ban action
-async function logBan(userId, guildId, bannedBy, reason = 'No reason provided') {
-  const query = `
-    INSERT INTO bans (user_id, guild_id, banned_by, reason)
-    VALUES (?, ?, ?, ?)
-    ON DUPLICATE KEY UPDATE
-      banned_by = VALUES(banned_by),
-      reason = VALUES(reason),
-      banned_at = CURRENT_TIMESTAMP,
-      is_active = TRUE
-  `;
-  
-  return await writeToDB(query, [userId, guildId, bannedBy, reason]);
-}
-
-// Log an unban action
-async function logUnban(userId, guildId) {
-  const query = `
-    UPDATE bans 
-    SET unbanned_at = CURRENT_TIMESTAMP, is_active = FALSE
-    WHERE user_id = ? AND guild_id = ? AND is_active = TRUE
-  `;
-  
-  return await writeToDB(query, [userId, guildId]);
-}
-
-// Check if user is banned from a specific guild
-async function isUserBanned(userId, guildId) {
-  const query = `
-    SELECT * FROM bans 
-    WHERE user_id = ? AND guild_id = ? AND is_active = TRUE
-  `;
-  
-  const results = await readFromDB(query, [userId, guildId]);
-  return results.length > 0 ? results[0] : null;
-}
-
-// Get total number of servers a user is banned from
-async function getUserBanCount(userId) {
-  const query = `
-    SELECT COUNT(*) as count 
-    FROM bans 
-    WHERE user_id = ? AND is_active = TRUE
-  `;
-  
-  const results = await readFromDB(query, [userId]);
-  return results[0].count;
-}
-
-// Get all active bans for a user
-async function getUserBans(userId) {
-  const query = `
-    SELECT b.*, g.name as guild_name, u.username as banned_by_username
-    FROM bans b
-    LEFT JOIN guilds g ON b.guild_id = g.id
-    LEFT JOIN users u ON b.banned_by = u.id
-    WHERE b.user_id = ? AND b.is_active = TRUE
-    ORDER BY b.banned_at DESC
-  `;
-  
-  return await readFromDB(query, [userId]);
-}
-
 // Graceful shutdown
 async function closeDB() {
   console.log('🔄 Shutting down database...');
@@ -426,6 +247,10 @@ async function closeDB() {
   }
 }
 
+// Import separated functions
+const dbRead = require('./read');
+const dbWrite = require('./write');
+
 module.exports = {
   pool,
   testConnection,
@@ -436,20 +261,9 @@ module.exports = {
   setupDatabase,
   closeDB,
   
-  // Discord bot utility functions
-  upsertUser,
-  upsertGuild,
-  getUserData,
-  setUserData,
-  logCommand,
-  getBotConfig,
-  setBotConfig,
-  getDBStats,
+  // Import all read functions
+  ...dbRead,
   
-  // Ban tracking functions
-  logBan,
-  logUnban,
-  isUserBanned,
-  getUserBanCount,
-  getUserBans
+  // Import all write functions
+  ...dbWrite
 };

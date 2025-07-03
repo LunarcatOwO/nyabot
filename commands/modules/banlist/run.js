@@ -1,0 +1,157 @@
+exports.description = 'Show all banned users from the server';
+exports.options = [
+    {
+        name: 'page',
+        type: 4, // INTEGER type
+        description: 'Page number to view (default: 1)',
+        required: false,
+        min_value: 1
+    }
+];
+
+exports.execute = async (ctx) => {
+    // Check if the command is being used in a guild
+    if (!ctx.guild) {
+        return {
+            embeds: [{
+                title: '❌ Guild Only',
+                description: 'This command can only be used in a server.',
+                color: 0xFF0000
+            }]
+        };
+    }
+
+    // Check if the bot has permission to view bans
+    if (!ctx.guild.members.me.permissions.has('BanMembers')) {
+        return {
+            embeds: [{
+                title: '❌ Missing Permissions',
+                description: 'I don\'t have permission to view bans in this server.',
+                color: 0xFF0000
+            }]
+        };
+    }
+
+    // Check if the user has permission to view bans
+    if (!ctx.member.permissions.has('BanMembers') && !ctx.member.permissions.has('ModerateMembers')) {
+        return {
+            embeds: [{
+                title: '❌ Permission Denied',
+                description: 'You don\'t have permission to view the ban list.',
+                color: 0xFF0000
+            }]
+        };
+    }
+
+    let page = 1;
+
+    if (ctx.isSlashCommand) {
+        page = ctx.options.getInteger('page') || 1;
+    } else if (ctx.isMessage && ctx.args.length > 0) {
+        const pageInput = parseInt(ctx.args[0]);
+        if (!isNaN(pageInput) && pageInput > 0) {
+            page = pageInput;
+        }
+    }
+
+    try {
+        // Fetch all bans from the guild
+        const bans = await ctx.guild.bans.fetch();
+        
+        if (bans.size === 0) {
+            return {
+                embeds: [{
+                    title: '📋 Ban List',
+                    description: '✅ No users are currently banned from this server.',
+                    color: 0x00FF00,
+                    footer: {
+                        text: `Server: ${ctx.guild.name}`
+                    }
+                }]
+            };
+        }
+
+        // Convert to array and sort by ban reason or username
+        const banArray = Array.from(bans.values());
+        banArray.sort((a, b) => {
+            // Sort by username, fallback to user ID if no username
+            const nameA = a.user.username || a.user.id;
+            const nameB = b.user.username || b.user.id;
+            return nameA.localeCompare(nameB);
+        });
+
+        // Pagination settings
+        const itemsPerPage = 10;
+        const totalPages = Math.ceil(banArray.length / itemsPerPage);
+        
+        // Validate page number
+        if (page > totalPages) {
+            return {
+                embeds: [{
+                    title: '❌ Invalid Page',
+                    description: `Page ${page} doesn't exist. There are only ${totalPages} page(s) available.`,
+                    color: 0xFF0000
+                }]
+            };
+        }
+
+        // Calculate pagination
+        const startIndex = (page - 1) * itemsPerPage;
+        const endIndex = Math.min(startIndex + itemsPerPage, banArray.length);
+        const pageBans = banArray.slice(startIndex, endIndex);
+
+        // Create embed fields for banned users
+        const banFields = pageBans.map((ban, index) => {
+            const globalIndex = startIndex + index + 1;
+            const user = ban.user;
+            const reason = ban.reason || 'No reason provided';
+            
+            return {
+                name: `${globalIndex}. ${user.username || 'Unknown User'}`,
+                value: `**ID:** \`${user.id}\`\n**Reason:** ${reason.length > 100 ? reason.substring(0, 97) + '...' : reason}`,
+                inline: false
+            };
+        });
+
+        // Create the embed
+        const embed = {
+            title: '🔨 Server Ban List',
+            description: `Showing banned users in **${ctx.guild.name}**`,
+            fields: banFields,
+            color: 0xFF6B6B,
+            footer: {
+                text: `Page ${page} of ${totalPages} • Total bans: ${bans.size}`
+            },
+            timestamp: new Date().toISOString()
+        };
+
+        // Add navigation hint if there are multiple pages
+        if (totalPages > 1) {
+            const navigationHint = ctx.isSlashCommand ? 
+                `Use \`/banlist page:${page + 1}\` for next page` :
+                `Use \`n+banlist ${page + 1}\` for next page`;
+            
+            embed.description += `\n\n${page < totalPages ? navigationHint : 'This is the last page.'}`;
+        }
+
+        return { embeds: [embed] };
+
+    } catch (error) {
+        console.error('Error fetching ban list:', error);
+
+        return {
+            embeds: [{
+                title: '❌ Error Fetching Ban List',
+                description: 'Failed to retrieve the ban list. This could be due to missing permissions or a server error.',
+                fields: [
+                    {
+                        name: 'Error Details',
+                        value: error.message.length > 1024 ? error.message.substring(0, 1021) + '...' : error.message,
+                        inline: false
+                    }
+                ],
+                color: 0xFF0000
+            }]
+        };
+    }
+};

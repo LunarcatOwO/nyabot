@@ -221,8 +221,8 @@ exports.execute = async (ctx) => {
 
         // Store ban information in database for tracking
         try {
-            const { logBan } = require('../../../../helpers/db/init');
-            await logBan(targetUser.id, ctx.guild.id, ctx.user.id, reason);
+            const db = require('../../../helpers/db');
+            await db.write.logBan(targetUser.id, ctx.guild.id, ctx.user.id, reason);
         } catch (dbError) {
             console.error('Failed to log ban:', dbError);
         }
