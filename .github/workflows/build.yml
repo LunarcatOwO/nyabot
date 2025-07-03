@@ -15,7 +15,7 @@ jobs:
   build-and-publish:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       packages: write
     steps:
       - name: Checkout repository
@@ -83,5 +83,7 @@ jobs:
           TAG_NAME=sha-${GITHUB_SHA::7}
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config url."https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
           git tag $TAG_NAME
           git push origin $TAG_NAME
+          echo "Created and pushed tag: ${TAG_NAME}"
