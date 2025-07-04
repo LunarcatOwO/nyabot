@@ -36,7 +36,7 @@ function hasPermission(member, requiredPermissions, userId = null) {
     });
 }
 
-function createContext(interaction, args = []) {
+function createContext(interaction, args = [], ephemeral = false) {
     // Check if this is a slash command interaction
     const isSlashCommand = interaction && typeof interaction.reply === 'function' && interaction.commandName;
     // Check if this is a message
@@ -66,7 +66,9 @@ function createContext(interaction, args = []) {
                 if (interaction.replied || interaction.deferred) {
                     return interaction.editReply(content);
                 }
-                return interaction.reply(content);
+                // Apply ephemeral flag for slash commands if requested and not already replied
+                const replyOptions = ephemeral ? { ...content, ephemeral: true } : content;
+                return interaction.reply(replyOptions);
             } else if (isMessage) {
                 return interaction.channel.send(content);
             }
@@ -83,7 +85,11 @@ function createContext(interaction, args = []) {
         
         deferReply: async (options = {}) => {
             if (isSlashCommand) {
-                return interaction.deferReply(options);
+                // Apply ephemeral flag if requested and not already set
+                const deferOptions = ephemeral && !options.hasOwnProperty('ephemeral') 
+                    ? { ...options, ephemeral: true } 
+                    : options;
+                return interaction.deferReply(deferOptions);
             }
             // For message commands, we can't defer, so this is a no-op
         },
@@ -99,7 +105,7 @@ function wrapCommand(cmd) {
     return {
         ...cmd,
         execute: async (interaction, args = []) => {
-            const ctx = createContext(interaction, args);
+            const ctx = createContext(interaction, args, cmd.ephemeral || false);
             
             if (!ctx) {
                 console.error('Failed to create context for interaction:', interaction);
@@ -182,9 +188,17 @@ function wrapCommand(cmd) {
                         }
                         
                         if (subcommand.execute) {
-                            const result = await subcommand.execute(ctx);
+                            // Check if subcommand has its own ephemeral setting, otherwise inherit from parent
+                            const subEphemeral = subcommand.hasOwnProperty('ephemeral') ? subcommand.ephemeral : cmd.ephemeral;
+                            
+                            // If subcommand has different ephemeral setting, create new context
+                            const subCtx = subEphemeral !== cmd.ephemeral 
+                                ? createContext(interaction, ctx.args, subEphemeral || false)
+                                : ctx;
+                                
+                            const result = await subcommand.execute(subCtx);
                             if (result) {
-                                await ctx.reply(result);
+                                await subCtx.reply(result);
                             }
                             return;
                         }

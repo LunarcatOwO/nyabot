@@ -1,4 +1,5 @@
 exports.description = 'Show user information';
+exports.ephemeral = true; // Make response ephemeral for privacy
 exports.options = [
     {
         name: 'user',

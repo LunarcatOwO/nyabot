@@ -1,5 +1,6 @@
 exports.name = 'help';
 exports.description = 'Displays help information and lists all available commands.';
+exports.ephemeral = true; // Make help responses ephemeral to avoid clutter
 exports.options = [
     {
         name: 'page',
