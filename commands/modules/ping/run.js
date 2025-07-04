@@ -5,6 +5,9 @@ exports.ephemeral = true; // Make ping responses ephemeral to reduce chat clutte
 exports.execute = async (ctx) => {
     const startTime = Date.now();
     
+    // Get API latency from the client's WebSocket ping
+    const apiLatency = ctx.raw.client.ws.ping;
+    
     return {
         embeds: [{
             title: '🏓 Pong!',
@@ -13,6 +16,11 @@ exports.execute = async (ctx) => {
                 {
                     name: 'Response Time',
                     value: `${Date.now() - startTime}ms`,
+                    inline: true
+                },
+                {
+                    name: 'API Latency',
+                    value: `${apiLatency >= 0 ? apiLatency : 'N/A'}ms`,
                     inline: true
                 },
                 {
