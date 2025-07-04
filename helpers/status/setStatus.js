@@ -81,7 +81,7 @@ function startStatusRotation(client, interval = 30) {
         setRandomStatus(client);
     }, interval * 1000);
 
-    console.log(`🔄 Status rotation started (${interval}ms interval)`);
+    console.log(`🔄 Status rotation started (${interval}s interval)`);
     return rotationInterval;
 }
 

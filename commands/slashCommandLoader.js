@@ -6,11 +6,17 @@ const CLIENT_ID = process.env.CLIENT_ID;
 const TOKEN = process.env.TOKEN;
 
 // Prepare commands for registration
-const commands = Object.values(load)
-    .filter(cmd => {
-        // Only include commands that have a name property
-        if (!cmd.name) {
-            console.warn(`Warning: Command without name property found:`, cmd);
+const commands = Object.entries(load)
+    .filter(([key, cmd]) => {
+        // Skip function exports (like getAvailableCommands)
+        if (typeof cmd === 'function') {
+            console.log(`Skipping function export: ${key}`);
+            return false;
+        }
+        
+        // Only include commands that have a name property and execute function
+        if (!cmd.name || typeof cmd.execute !== 'function') {
+            console.warn(`Warning: Invalid command found:`, key, cmd);
             return false;
         }
         
@@ -23,7 +29,7 @@ const commands = Object.values(load)
         
         return true;
     })
-    .map(cmd => {
+    .map(([key, cmd]) => {
         const command = {
             name: cmd.name,
             description: cmd.description || 'No description',

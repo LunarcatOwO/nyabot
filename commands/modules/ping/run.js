@@ -6,7 +6,7 @@ exports.execute = async (ctx) => {
     const startTime = Date.now();
     
     // Get API latency from the client's WebSocket ping
-    const apiLatency = ctx.raw.client.ws.ping;
+    const apiLatency = Math.round(ctx.raw.client.ws.ping);
     
     return {
         embeds: [{
@@ -20,7 +20,7 @@ exports.execute = async (ctx) => {
                 },
                 {
                     name: 'API Latency',
-                    value: `${apiLatency >= 0 ? apiLatency : 'N/A'}ms`,
+                    value: `${apiLatency} ms`,
                     inline: true
                 },
                 {
