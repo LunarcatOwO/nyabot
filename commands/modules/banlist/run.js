@@ -1,5 +1,7 @@
 exports.name = 'banlist';
 exports.description = 'Show all banned users from the server';
+exports.permissions = ['BanMembers', 'ModerateMembers']; // User needs either permission
+exports.guildOnly = true; // Can only be used in servers
 exports.options = [
     {
         name: 'page',
@@ -11,34 +13,12 @@ exports.options = [
 ];
 
 exports.execute = async (ctx) => {
-    // Check if the command is being used in a guild
-    if (!ctx.guild) {
-        return {
-            embeds: [{
-                title: '❌ Guild Only',
-                description: 'This command can only be used in a server.',
-                color: 0xFF0000
-            }]
-        };
-    }
-
     // Check if the bot has permission to view bans
     if (!ctx.guild.members.me.permissions.has('BanMembers')) {
         return {
             embeds: [{
-                title: '❌ Missing Permissions',
+                title: '❌ Missing Bot Permissions',
                 description: 'I don\'t have permission to view bans in this server.',
-                color: 0xFF0000
-            }]
-        };
-    }
-
-    // Check if the user has permission to view bans
-    if (!ctx.member.permissions.has('BanMembers') && !ctx.member.permissions.has('ModerateMembers')) {
-        return {
-            embeds: [{
-                title: '❌ Permission Denied',
-                description: 'You don\'t have permission to view the ban list.',
                 color: 0xFF0000
             }]
         };

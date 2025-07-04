@@ -1,5 +1,7 @@
 exports.name = 'ban';
 exports.description = 'Ban a user from the server';
+exports.permissions = ['BanMembers']; // Required permissions
+exports.guildOnly = true; // Can only be used in servers
 exports.options = [
     {
         name: 'user',
@@ -24,34 +26,12 @@ exports.options = [
 ];
 
 exports.execute = async (ctx) => {
-    // Check if the command is being used in a guild
-    if (!ctx.guild) {
-        return {
-            embeds: [{
-                title: '❌ Guild Only',
-                description: 'This command can only be used in a server.',
-                color: 0xFF0000
-            }]
-        };
-    }
-
     // Check if the bot has permission to ban members
     if (!ctx.guild.members.me.permissions.has('BanMembers')) {
         return {
             embeds: [{
-                title: '❌ Missing Permissions',
+                title: '❌ Missing Bot Permissions',
                 description: 'I don\'t have permission to ban members in this server.',
-                color: 0xFF0000
-            }]
-        };
-    }
-
-    // Check if the user has permission to ban members
-    if (!ctx.member.permissions.has('BanMembers')) {
-        return {
-            embeds: [{
-                title: '❌ Permission Denied',
-                description: 'You don\'t have permission to ban members.',
                 color: 0xFF0000
             }]
         };

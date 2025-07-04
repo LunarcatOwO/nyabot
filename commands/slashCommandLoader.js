@@ -13,6 +13,14 @@ const commands = Object.values(load)
             console.warn(`Warning: Command without name property found:`, cmd);
             return false;
         }
+        
+        // Skip bot owner only commands from global registration
+        // These will be handled at runtime with permission checks
+        if (cmd.permissions && cmd.permissions.includes('BotOwner')) {
+            console.log(`Skipping bot owner only command from global registration: ${cmd.name}`);
+            return true; // Still include it but we'll handle permissions at runtime
+        }
+        
         return true;
     })
     .map(cmd => {

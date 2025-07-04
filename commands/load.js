@@ -2,6 +2,40 @@
 const fs = require('fs');
 const path = require('path');
 
+function hasPermission(member, requiredPermissions, userId = null) {
+    if (!requiredPermissions || requiredPermissions.length === 0) {
+        return true; // No permissions required
+    }
+    
+    // Check for BotOwner permission first
+    if (requiredPermissions.includes('BotOwner')) {
+        const botOwnerId = process.env.ROOT_USR;
+        if (!botOwnerId) {
+            console.warn('ROOT_USR environment variable not set, BotOwner permission checks will fail');
+            return false;
+        }
+        const userIdToCheck = userId || (member ? member.id : null);
+        return userIdToCheck === botOwnerId;
+    }
+    
+    if (!member) {
+        return false; // Can't check guild permissions without member
+    }
+    
+    // Check if user is server owner (they have all permissions except BotOwner)
+    if (member.guild && member.id === member.guild.ownerId) {
+        return true;
+    }
+    
+    // Check if member has any of the required permissions
+    return requiredPermissions.some(permission => {
+        if (typeof permission === 'string') {
+            return member.permissions.has(permission);
+        }
+        return false;
+    });
+}
+
 function createContext(interaction, args = []) {
     // Check if this is a slash command interaction
     const isSlashCommand = interaction && typeof interaction.reply === 'function' && interaction.commandName;
@@ -71,6 +105,31 @@ function wrapCommand(cmd) {
                 console.error('Failed to create context for interaction:', interaction);
                 return;
             }
+
+            // Check permissions before executing command
+            if (cmd.permissions && cmd.permissions.length > 0) {
+                if (!hasPermission(ctx.member, cmd.permissions, ctx.user.id)) {
+                    const permissionNames = cmd.permissions.join(', ');
+                    return ctx.reply({
+                        embeds: [{
+                            title: '❌ Permission Denied',
+                            description: `You don't have the required permissions to use this command.\n\n**Required permissions:** ${permissionNames}`,
+                            color: 0xFF0000
+                        }]
+                    });
+                }
+            }
+
+            // Check if command requires guild (server) context
+            if (cmd.guildOnly && !ctx.guild) {
+                return ctx.reply({
+                    embeds: [{
+                        title: '❌ Guild Only',
+                        description: 'This command can only be used in a server.',
+                        color: 0xFF0000
+                    }]
+                });
+            }
             
             try {
                 // Handle sub commands
@@ -96,6 +155,32 @@ function wrapCommand(cmd) {
                     
                     if (subcommandName && cmd.subcommands[subcommandName]) {
                         const subcommand = cmd.subcommands[subcommandName];
+                        
+                        // Check subcommand permissions
+                        if (subcommand.permissions && subcommand.permissions.length > 0) {
+                            if (!hasPermission(ctx.member, subcommand.permissions, ctx.user.id)) {
+                                const permissionNames = subcommand.permissions.join(', ');
+                                return ctx.reply({
+                                    embeds: [{
+                                        title: '❌ Permission Denied',
+                                        description: `You don't have the required permissions to use this subcommand.\n\n**Required permissions:** ${permissionNames}`,
+                                        color: 0xFF0000
+                                    }]
+                                });
+                            }
+                        }
+                        
+                        // Check if subcommand requires guild context
+                        if (subcommand.guildOnly && !ctx.guild) {
+                            return ctx.reply({
+                                embeds: [{
+                                    title: '❌ Guild Only',
+                                    description: 'This subcommand can only be used in a server.',
+                                    color: 0xFF0000
+                                }]
+                            });
+                        }
+                        
                         if (subcommand.execute) {
                             const result = await subcommand.execute(ctx);
                             if (result) {
@@ -200,4 +285,56 @@ function getModules(dir) {
 
 const load = getModules(path.join(__dirname, 'modules'));
 
+// Function to get commands available to a specific user
+function getAvailableCommands(member, guild, userId = null) {
+    const availableCommands = [];
+    
+    for (const [commandName, command] of Object.entries(load)) {
+        // Check if command requires guild and we're not in a guild
+        if (command.guildOnly && !guild) {
+            continue;
+        }
+        
+        // Check if user has permissions for main command
+        if (command.permissions && command.permissions.length > 0) {
+            if (!hasPermission(member, command.permissions, userId)) {
+                continue;
+            }
+        }
+        
+        const baseCommand = {
+            name: commandName,
+            description: command.description || 'No description available',
+            isSubcommand: false
+        };
+        availableCommands.push(baseCommand);
+        
+        // Add subcommands if they exist and user has access
+        if (command.subcommands && Object.keys(command.subcommands).length > 0) {
+            for (const [subName, subCommand] of Object.entries(command.subcommands)) {
+                // Check if subcommand requires guild and we're not in a guild
+                if (subCommand.guildOnly && !guild) {
+                    continue;
+                }
+                
+                // Check if user has permissions for subcommand
+                if (subCommand.permissions && subCommand.permissions.length > 0) {
+                    if (!hasPermission(member, subCommand.permissions, userId)) {
+                        continue;
+                    }
+                }
+                
+                availableCommands.push({
+                    name: `${commandName} ${subName}`,
+                    description: subCommand.description || 'No description available',
+                    isSubcommand: true
+                });
+            }
+        }
+    }
+    
+    return availableCommands;
+}
+
 module.exports = load;
+module.exports.getAvailableCommands = getAvailableCommands;

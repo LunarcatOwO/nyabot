@@ -1,5 +1,7 @@
 exports.name = 'unban';
 exports.description = 'Unban a user from the server';
+exports.permissions = ['BanMembers']; // Required permissions
+exports.guildOnly = true; // Can only be used in servers
 exports.options = [
     {
         name: 'user',

@@ -1,17 +1,7 @@
 exports.description = 'Set a random bot status';
+exports.permissions = ['BotOwner']; // Only bot owner can change bot status
 
 exports.execute = async (ctx) => {
-    // Check if user has permission (you might want to add proper permission checks)
-    if (ctx.user.id !== 'process.env.ROOT_USR') { // Replace with your user ID or add proper role checks
-        return {
-            embeds: [{
-                title: '❌ Permission Denied',
-                description: 'You do not have permission to change the bot status.',
-                color: 0xff0000
-            }]
-        };
-    }
-    
     // Load helpers to access status functions
     const helpers = require('../../../../helpers/load.js');
     

@@ -1,4 +1,5 @@
 exports.description = 'Set bot status';
+exports.permissions = ['BotOwner']; // Only bot owner can change bot status
 exports.options = [
     {
         name: 'activity',
@@ -34,17 +35,6 @@ exports.options = [
 ];
 
 exports.execute = async (ctx) => {
-    // Check if user has permission (you might want to add proper permission checks)
-    if (ctx.user.id !== 'process.env.ROOT_USR') { // Replace with your user ID or add proper role checks
-        return {
-            embeds: [{
-                title: '❌ Permission Denied',
-                description: 'You do not have permission to change the bot status.',
-                color: 0xff0000
-            }]
-        };
-    }
-    
     let activity, type = 'PLAYING', status = 'online';
     
     if (ctx.isSlashCommand) {
