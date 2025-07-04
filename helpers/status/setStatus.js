@@ -61,7 +61,8 @@ function setRandomStatus(client) {
         { activity: 'with commands | n+ help', type: 'PLAYING' },
         { activity: 'to what you say', type: 'LISTENING' },
         { activity: 'with cozy', type: 'COMPETING' },
-        { activity: 'your every move', type: 'WATCHING' }
+        { activity: 'your every move', type: 'WATCHING' },
+        { activity: 'The Banlist | n+ banlist', type: 'PLAYING' }
     ];
 
     const randomStatus = statusOptions[Math.floor(Math.random() * statusOptions.length)];
@@ -73,12 +74,12 @@ function setRandomStatus(client) {
  * @param {Client} client - The Discord client
  * @param {number} interval - Interval in milliseconds (default: 30 seconds)
  */
-function startStatusRotation(client, interval = 30000) {
+function startStatusRotation(client, interval = 30) {
     setRandomStatus(client); // Set initial status
 
     const rotationInterval = setInterval(() => {
         setRandomStatus(client);
-    }, interval);
+    }, interval * 1000);
 
     console.log(`🔄 Status rotation started (${interval}ms interval)`);
     return rotationInterval;

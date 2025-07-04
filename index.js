@@ -77,7 +77,7 @@ client.once("ready", async () => {
   
   // Register slash commands
   await registerSlashCommands();
-  helpers.status.setStatus.startStatusRotation(client, 10000); // Start status rotation every 10 seconds
+  helpers.status.setStatus.startStatusRotation(client); // Start status rotation every 10 seconds
 });
 
 // Graceful shutdown handling
