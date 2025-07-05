@@ -61,7 +61,7 @@ client.on("messageCreate", async (message) => {
       
       // Only log DMs that are not commands
       if (!isCommand) {
-        await helpers.dm.logDM(message, client);
+        await helpers.dm.log.logDM(message, client);
       }
     }
     return; // Don't process DMs as commands

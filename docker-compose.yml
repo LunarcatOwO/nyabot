@@ -9,7 +9,7 @@ services:
       - CLIENT_ID=${CLIENT_ID}
       - ROOT_USR=${ROOT_USR}
       - SENTRY_DSN=${SENTRY_DSN}
-      - HOME=${HOME}
+      - HOME_GUILD=${HOME_GUILD}
       - ENV=production
     labels:
       - "com.centurylinklabs.watchtower.enable=true"

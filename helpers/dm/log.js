@@ -7,14 +7,17 @@ const { EmbedBuilder, WebhookClient } = require('discord.js');
  */
 async function logDM(message, client) {
     try {
-        if (!process.env.HOME) {
-            console.warn('HOME environment variable not set - DM logging disabled');
+        if (!process.env.HOME_GUILD) {
+            console.warn('HOME_GUILD environment variable not set - DM logging disabled');
             return;
         }
 
-        const homeGuild = await client.guilds.fetch(process.env.HOME);
+        console.log('HOME_GUILD environment variable:', process.env.HOME_GUILD);
+        console.log('HOME_GUILD type:', typeof process.env.HOME_GUILD);
+
+        const homeGuild = await client.guilds.fetch(process.env.HOME_GUILD);
         if (!homeGuild) {
-            console.error('Could not find home guild with ID:', process.env.HOME);
+            console.error('Could not find home guild with ID:', process.env.HOME_GUILD);
             return;
         }
 
@@ -73,17 +76,18 @@ async function logDM(message, client) {
  * @param {User} user - The user the DM is being sent to
  * @param {string|Object} content - The content being sent
  * @param {Client} client - The Discord client
+ * @param {User} [initiator] - The user who initiated the DM (optional)
  */
-async function logOutgoingDM(user, content, client) {
+async function logOutgoingDM(user, content, client, initiator = null) {
     try {
-        if (!process.env.HOME) {
-            console.warn('HOME environment variable not set - DM logging disabled');
+        if (!process.env.HOME_GUILD) {
+            console.warn('HOME_GUILD environment variable not set - DM logging disabled');
             return;
         }
 
-        const homeGuild = await client.guilds.fetch(process.env.HOME);
+        const homeGuild = await client.guilds.fetch(process.env.HOME_GUILD);
         if (!homeGuild) {
-            console.error('Could not find home guild with ID:', process.env.HOME);
+            console.error('Could not find home guild with ID:', process.env.HOME_GUILD);
             return;
         }
 
@@ -110,8 +114,17 @@ async function logOutgoingDM(user, content, client) {
                 name: `${user.tag} (${user.id})`,
                 iconURL: user.displayAvatarURL()
             })
-            .setTimestamp()
-            .setFooter({ text: 'DM Logger' });
+            .setTimestamp();
+
+        // Set footer with initiator info if provided
+        if (initiator) {
+            embed.setFooter({ 
+                text: `DM Logger • Initiated by ${initiator.tag}`,
+                iconURL: initiator.displayAvatarURL()
+            });
+        } else {
+            embed.setFooter({ text: 'DM Logger' });
+        }
 
         // Handle different content types
         if (typeof content === 'string') {
@@ -128,7 +141,7 @@ async function logOutgoingDM(user, content, client) {
         }
 
         await logChannel.send({ embeds: [embed] });
-        console.log(`✅ Logged outgoing DM to ${user.tag}`);
+        console.log(`✅ Logged outgoing DM to ${user.tag}${initiator ? ` (initiated by ${initiator.tag})` : ''}`);
     } catch (error) {
         console.error('❌ Failed to log outgoing DM:', error);
     }

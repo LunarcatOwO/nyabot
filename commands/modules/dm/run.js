@@ -97,7 +97,7 @@ exports.execute = async (ctx) => {
 
     try {
         const helpers = require('../../../helpers/load.js');
-        const sentMessage = await helpers.dm.sendDM(targetUser, message, ctx.raw.client);
+        const sentMessage = await helpers.dm.send.sendDM(targetUser, message, ctx.raw.client, ctx.user);
         
         if (sentMessage) {
             return {
