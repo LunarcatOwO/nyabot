@@ -53,6 +53,20 @@ client.on("interactionCreate", async (interaction) => {
 const prefix = "n+";
 
 client.on("messageCreate", async (message) => {
+  // Handle DMs
+  if (message.channel.type === 1) { // DM channel
+    if (!message.author.bot) {
+      // Check if the message is a command (starts with prefix)
+      const isCommand = message.content.startsWith(prefix);
+      
+      // Only log DMs that are not commands
+      if (!isCommand) {
+        await helpers.dm.logDM(message, client);
+      }
+    }
+    return; // Don't process DMs as commands
+  }
+  
   if (message.author.bot || !message.content.startsWith(prefix)) return;
   const args = message.content.slice(prefix.length).trim().split(/\s+/);
   const commandName = args.shift().toLowerCase();

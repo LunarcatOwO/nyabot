@@ -11,7 +11,7 @@ module.exports = {
   read,
   write,
   
-  // Legacy compatibility - all functions available at root level
+  // all functions available at root level
   ...read,
   ...write
 };
