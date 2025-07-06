@@ -67,7 +67,9 @@ async function checkForLeftGuilds(client) {
     let leftGuilds = [];
     
     for (const dbGuild of dbGuilds) {
-      if (!currentGuildIds.has(dbGuild.id)) {
+      // Ensure both IDs are strings for comparison (database returns BigInt, Discord uses strings)
+      const dbGuildId = String(dbGuild.id);
+      if (!currentGuildIds.has(dbGuildId)) {
         leftGuilds.push(dbGuild);
       }
     }
@@ -98,6 +100,52 @@ async function checkForLeftGuilds(client) {
     return { leftGuilds };
   } catch (error) {
     console.error('❌ Error checking for left guilds:', error.message);
+    throw error;
+  }
+}
+
+/**
+ * Check for guilds that are incorrectly marked for purging but bot is still in them
+ * @param {Client} client - The Discord client instance
+ */
+async function checkForIncorrectlyMarkedGuilds(client) {
+  try {
+    console.log('🔍 Checking for incorrectly marked guilds...');
+    
+    // Get all guilds marked for departure
+    const markedGuilds = await readFromDB('SELECT guild_id, guild_name FROM guild_departures');
+    const currentGuildIds = new Set(client.guilds.cache.keys());
+    
+    let incorrectlyMarked = [];
+    
+    for (const markedGuild of markedGuilds) {
+      // Ensure both IDs are strings for comparison (database returns BigInt, Discord uses strings)
+      const markedGuildId = String(markedGuild.guild_id);
+      if (currentGuildIds.has(markedGuildId)) {
+        incorrectlyMarked.push(markedGuild);
+      }
+    }
+    
+    if (incorrectlyMarked.length === 0) {
+      console.log('✅ No incorrectly marked guilds found');
+      return { canceledDepartures: [] };
+    }
+    
+    console.log(`📋 Found ${incorrectlyMarked.length} guild(s) incorrectly marked for departure:`);
+    
+    for (const guild of incorrectlyMarked) {
+      console.log(`  - ${guild.guild_name} (${guild.guild_id})`);
+      
+      // Cancel the departure record since we're still in the guild
+      const helpers = require('../load.js');
+      if (helpers.guild && helpers.guild.cleanup) {
+        await helpers.guild.cleanup.cancelGuildDeparture(String(guild.guild_id));
+      }
+    }
+    
+    return { canceledDepartures: incorrectlyMarked };
+  } catch (error) {
+    console.error('❌ Error checking for incorrectly marked guilds:', error.message);
     throw error;
   }
 }
@@ -134,7 +182,7 @@ async function getGuildSyncStats(client) {
 /**
  * Start periodic guild synchronization
  * @param {Client} client - The Discord client instance
- * @param {number} intervalMinutes - How often to sync (in minutes, default: 360 = 6 hours)
+ * @param {number} intervalMinutes - How often to sync (in minutes, default: 60 = 1 hour)
  */
 function startPeriodicSync(client, intervalMinutes = 60) {
   console.log(`🔄 Starting periodic guild synchronization (every ${intervalMinutes} minutes)`);
@@ -144,16 +192,18 @@ function startPeriodicSync(client, intervalMinutes = 60) {
     try {
       await syncAllGuilds(client);
       await checkForLeftGuilds(client);
+      await checkForIncorrectlyMarkedGuilds(client);
     } catch (error) {
       console.error('❌ Error during initial guild sync:', error.message);
     }
-  }, 1 * 60 * 1000);
+  }, 2 * 60 * 1000);
   
   // Then run periodically
   setInterval(async () => {
     try {
       await syncAllGuilds(client);
       await checkForLeftGuilds(client);
+      await checkForIncorrectlyMarkedGuilds(client);
     } catch (error) {
       console.error('❌ Error during periodic guild sync:', error.message);
     }
@@ -177,11 +227,15 @@ async function performFullGuildAudit(client) {
     // Check for left guilds
     const leftResult = await checkForLeftGuilds(client);
     
+    // Check for incorrectly marked guilds
+    const incorrectResult = await checkForIncorrectlyMarkedGuilds(client);
+    
     console.log('✅ Full guild audit completed');
     return {
       stats,
       syncResult,
-      leftResult
+      leftResult,
+      incorrectResult
     };
   } catch (error) {
     console.error('❌ Error during full guild audit:', error.message);
@@ -193,6 +247,7 @@ module.exports = {
   syncAllGuilds,
   syncGuildData,
   checkForLeftGuilds,
+  checkForIncorrectlyMarkedGuilds,
   getGuildSyncStats,
   startPeriodicSync,
   performFullGuildAudit

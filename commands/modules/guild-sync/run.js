@@ -13,7 +13,8 @@ exports.options = [
             { name: 'Status', value: 'status' },
             { name: 'Sync Now', value: 'sync' },
             { name: 'Full Audit', value: 'audit' },
-            { name: 'Check Left Guilds', value: 'check-left' }
+            { name: 'Check Left Guilds', value: 'check-left' },
+            { name: 'Check Incorrectly Marked', value: 'check-incorrect' }
         ]
     }
 ];
@@ -25,7 +26,7 @@ exports.execute = async (ctx) => {
         return {
             embeds: [{
                 title: '❌ Missing Action',
-                description: 'Please specify an action: `status`, `sync`, `audit`, or `check-left`',
+                description: 'Please specify an action: `status`, `sync`, `audit`, `check-left`, or `check-incorrect`',
                 color: 0xFF0000
             }]
         };
@@ -145,6 +146,13 @@ exports.execute = async (ctx) => {
                                 name: '🚪 Left Guilds Found',
                                 value: leftGuildsText.length > 1024 ? leftGuildsText.substring(0, 1021) + '...' : leftGuildsText,
                                 inline: false
+                            },
+                            {
+                                name: '🔧 Incorrectly Marked Guilds',
+                                value: auditResult.incorrectResult.canceledDepartures.length > 0 
+                                    ? auditResult.incorrectResult.canceledDepartures.map(g => `• ${g.guild_name} (${g.guild_id})`).join('\n')
+                                    : 'None found',
+                                inline: false
                             }
                         ],
                         color: 0x0099FF,
@@ -184,11 +192,42 @@ exports.execute = async (ctx) => {
                 };
             }
 
+            case 'check-incorrect': {
+                const incorrectResult = await guildSync.checkForIncorrectlyMarkedGuilds(client);
+                
+                const incorrectGuildsText = incorrectResult.canceledDepartures.length > 0 
+                    ? incorrectResult.canceledDepartures.map(g => `• ${g.guild_name} (${g.guild_id})`).join('\n')
+                    : 'None found';
+
+                return {
+                    embeds: [{
+                        title: '🔧 Incorrectly Marked Guilds Check Completed',
+                        fields: [
+                            {
+                                name: '📋 Guilds Incorrectly Marked for Departure',
+                                value: incorrectGuildsText.length > 1024 ? incorrectGuildsText.substring(0, 1021) + '...' : incorrectGuildsText,
+                                inline: false
+                            },
+                            {
+                                name: '📊 Summary',
+                                value: `Found and canceled ${incorrectResult.canceledDepartures.length} incorrect departure record(s)`,
+                                inline: false
+                            }
+                        ],
+                        color: incorrectResult.canceledDepartures.length > 0 ? 0xFFA500 : 0x00FF00,
+                        timestamp: new Date().toISOString(),
+                        footer: {
+                            text: 'Incorrect departure records have been automatically canceled'
+                        }
+                    }]
+                };
+            }
+
             default:
                 return {
                     embeds: [{
                         title: '❌ Invalid Action',
-                        description: 'Valid actions are: `status`, `sync`, `audit`, or `check-left`',
+                        description: 'Valid actions are: `status`, `sync`, `audit`, `check-left`, or `check-incorrect`',
                         color: 0xFF0000
                     }]
                 };
