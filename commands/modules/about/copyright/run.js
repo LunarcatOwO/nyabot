@@ -35,6 +35,9 @@ exports.execute = async (ctx) => {
         ],
         color: 0xFF9900,
         timestamp: new Date().toISOString(),
+        thumbnail: {
+            url: ctx.raw.client.user.displayAvatarURL({ dynamic: true, size: 256 })
+        },
         footer: {
             text: 'NyaBot • Copyright Information'
         }
