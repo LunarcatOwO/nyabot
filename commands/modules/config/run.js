@@ -1,5 +1,6 @@
 exports.name = 'config';
 exports.description = 'Manage bot configuration';
+exports.category = 'Setup';
 exports.defaultSubcommand = 'help'; // Default subcommand when no subcommand is provided
 
 exports.execute = async (ctx) => {

@@ -1,5 +1,6 @@
 exports.name = 'user';
 exports.description = 'User-related commands';
+exports.category = 'User';
 exports.defaultSubcommand = 'info'; // Default to info subcommand
 
 exports.execute = async (ctx) => {

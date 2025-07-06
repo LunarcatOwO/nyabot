@@ -43,8 +43,8 @@ client.on("interactionCreate", async (interaction) => {
       console.error(err);
       await interaction.reply({ content: "There was an error executing that command.", ephemeral: true });
     }
-  } else if (interaction.isButton()) {
-    // Handle button interactions
+  } else if (interaction.isButton() || interaction.isStringSelectMenu()) {
+    // Handle button and select menu interactions
     await handleInteraction(interaction);
   }
 });

@@ -1,23 +1,20 @@
-exports.customId = 'help_nav';
-exports.description = 'Handle help command pagination navigation';
+exports.customId = 'help_category';
+exports.description = 'Handle help command category selection';
 
 exports.execute = async (interaction) => {
-    // Parse the button data - now includes userId and timestamp
+    // Parse the select menu data
     const parts = interaction.customId.split('_');
-    if (parts.length < 7) {
+    if (parts.length < 4) {
         return interaction.reply({
-            content: '❌ Invalid button interaction format.',
+            content: '❌ Invalid select menu interaction format.',
             ephemeral: true
         });
     }
     
-    const action = parts[2];
-    const currentPage = parseInt(parts[3]);
-    const totalPages = parseInt(parts[4]);
-    const originalUserId = parts[5];
-    // parts[6] is timestamp for uniqueness
+    const originalUserId = parts[2];
+    // parts[3] is timestamp for uniqueness
     
-    // Check if the user who clicked is the same as who triggered the command
+    // Check if the user who selected is the same as who triggered the command
     if (interaction.user.id !== originalUserId) {
         return interaction.reply({
             content: '❌ Only the user who triggered this help command can navigate it.',
@@ -25,36 +22,7 @@ exports.execute = async (interaction) => {
         });
     }
     
-    let newPage = currentPage;
-    
-    // Determine new page based on action
-    switch (action) {
-        case 'first':
-            newPage = 1;
-            break;
-        case 'prev':
-            newPage = Math.max(1, currentPage - 1);
-            break;
-        case 'next':
-            newPage = Math.min(totalPages, currentPage + 1);
-            break;
-        case 'last':
-            newPage = totalPages;
-            break;
-        default:
-            return interaction.reply({
-                content: '❌ Invalid navigation action.',
-                ephemeral: true
-            });
-    }
-    
-    // If page hasn't changed, just acknowledge
-    if (newPage === currentPage) {
-        return interaction.reply({
-            content: `📋 You're already on ${newPage === 1 ? 'the first' : 'the last'} page.`,
-            ephemeral: true
-        });
-    }
+    const selectedPage = parseInt(interaction.values[0]);
     
     try {
         // Get commands available to this user
@@ -70,7 +38,7 @@ exports.execute = async (interaction) => {
 
         // Use helper to generate complete help interface
         const helpHelper = require('../../helpers/helpEmbed');
-        const result = helpHelper.generateCompleteHelpInterface(commands, newPage, interaction.user.id);
+        const result = helpHelper.generateCompleteHelpInterface(commands, selectedPage, interaction.user.id);
         
         if (result.error) {
             return interaction.reply({
@@ -102,10 +70,10 @@ exports.execute = async (interaction) => {
         });
         
     } catch (error) {
-        console.error('Error handling help navigation:', error);
+        console.error('Error handling help category selection:', error);
         
         await interaction.reply({
-            content: '❌ An error occurred while navigating the help menu.',
+            content: '❌ An error occurred while changing categories.',
             ephemeral: true
         });
     }

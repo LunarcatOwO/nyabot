@@ -1,4 +1,5 @@
 exports.description = 'Show current bot status';
+exports.permissions = ['BotOwner'];
 
 exports.execute = async (ctx) => {
     const client = ctx.raw.client;

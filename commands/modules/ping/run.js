@@ -1,5 +1,6 @@
 exports.name = 'ping';
 exports.description = 'Check if the bot is responsive';
+exports.category = 'Utility';
 exports.ephemeral = true; // Make ping responses ephemeral to reduce chat clutter
 
 exports.execute = async (ctx) => {

@@ -1,5 +1,6 @@
 exports.name = 'slow';
 exports.description = 'A command that takes time to process (demonstrates deferred replies)';
+exports.category = 'Testing';
 
 exports.execute = async (ctx) => {
     // Defer the reply for long-running operations (only works for slash commands)

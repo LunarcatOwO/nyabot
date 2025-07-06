@@ -1,5 +1,6 @@
 exports.name = 'banlist';
 exports.description = 'Show all banned users from the server';
+exports.category = 'Moderation';
 exports.permissions = ['BanMembers', 'ModerateMembers']; // User needs either permission
 exports.guildOnly = true; // Can only be used in servers
 exports.ephemeral = true; // Make response ephemeral (only visible to user) for slash commands

@@ -1,5 +1,6 @@
 exports.name = 'ban';
 exports.description = 'Ban a user from the server';
+exports.category = 'Moderation';
 exports.permissions = ['BanMembers']; // Required permissions
 exports.guildOnly = true; // Can only be used in servers
 exports.options = [

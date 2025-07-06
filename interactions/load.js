@@ -63,8 +63,8 @@ function loadInteractionsFromDirectory(dir) {
  */
 async function handleInteraction(interaction) {
     try {
-        // Check if it's a button interaction
-        if (!interaction.isButton()) {
+        // Check if it's a button or select menu interaction
+        if (!interaction.isButton() && !interaction.isStringSelectMenu()) {
             return;
         }
         

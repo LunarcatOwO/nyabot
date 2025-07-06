@@ -304,6 +304,11 @@ function getAvailableCommands(member, guild, userId = null) {
     const availableCommands = [];
     
     for (const [commandName, command] of Object.entries(load)) {
+        // Skip function exports (like getAvailableCommands itself)
+        if (typeof command === 'function') {
+            continue;
+        }
+        
         // Check if command requires guild and we're not in a guild
         if (command.guildOnly && !guild) {
             continue;
@@ -315,13 +320,18 @@ function getAvailableCommands(member, guild, userId = null) {
                 continue;
             }
         }
-        
-        const baseCommand = {
-            name: commandName,
-            description: command.description || 'No description available',
-            isSubcommand: false
-        };
-        availableCommands.push(baseCommand);
+
+        // Only add the base command if it doesn't have a default subcommand
+        // If it has a default subcommand, users will effectively never use the base command
+        if (!command.defaultSubcommand) {
+            const baseCommand = {
+                name: commandName,
+                description: command.description || 'No description available',
+                category: command.category || 'General',
+                isSubcommand: false
+            };
+            availableCommands.push(baseCommand);
+        }
         
         // Add subcommands if they exist and user has access
         if (command.subcommands && Object.keys(command.subcommands).length > 0) {
@@ -341,6 +351,7 @@ function getAvailableCommands(member, guild, userId = null) {
                 availableCommands.push({
                     name: `${commandName} ${subName}`,
                     description: subCommand.description || 'No description available',
+                    category: subCommand.category || command.category || 'General',
                     isSubcommand: true
                 });
             }

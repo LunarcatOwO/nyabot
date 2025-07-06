@@ -1,5 +1,6 @@
 exports.name = 'help';
 exports.description = 'Displays help information and lists all available commands.';
+exports.category = 'Utility';
 exports.ephemeral = true; // Make help responses ephemeral to avoid clutter
 exports.options = [
     {
@@ -28,9 +29,6 @@ exports.execute = async (ctx) => {
         const commandLoader = require('../../load');
         const commands = commandLoader.getAvailableCommands(ctx.member, ctx.guild, ctx.user.id);
         
-        // Sort commands alphabetically
-        commands.sort((a, b) => a.name.localeCompare(b.name));
-        
         if (commands.length === 0) {
             return {
                 embeds: [{
@@ -41,92 +39,35 @@ exports.execute = async (ctx) => {
             };
         }
 
-        // Pagination settings
-        const itemsPerPage = 10;
-        const totalPages = Math.ceil(commands.length / itemsPerPage);
+        // Use helper to generate complete help interface
+        const helpHelper = require('../../../helpers/helpEmbed');
+        const result = helpHelper.generateCompleteHelpInterface(commands, page, ctx.user.id);
         
-        // Validate page number
-        if (page > totalPages) {
-            return {
-                embeds: [{
-                    title: '❌ Invalid Page',
-                    description: `Page ${page} doesn't exist. There are only ${totalPages} page(s) available.`,
-                    color: 0xFF0000
-                }]
-            };
+        if (result.error) {
+            return { embeds: [result.embed] };
         }
 
-        // Calculate pagination
-        const startIndex = (page - 1) * itemsPerPage;
-        const endIndex = Math.min(startIndex + itemsPerPage, commands.length);
-        const pageCommands = commands.slice(startIndex, endIndex);
-
-        // Create embed fields for commands
-        const commandFields = pageCommands.map((cmd, index) => {
-            const globalIndex = startIndex + index + 1;
-            const emoji = cmd.isSubcommand ? '└─' : '•';
-            
-            return {
-                name: `${globalIndex}. ${emoji} ${cmd.name}`,
-                value: cmd.description,
-                inline: false
-            };
-        });
-
-        // Create the embed
-        const embed = {
-            title: '🤖 NyaBot Commands',
-            description: 'Here are all available commands!\n\n' +
-                '**Message Commands:** `n+ command`\n**Slash Commands:** `/command`',
-            fields: commandFields,
-            color: 0x5865F2,
-            footer: {
-                text: `Page ${page} of ${totalPages} • Total commands: ${commands.length}`
-            },
-            timestamp: new Date().toISOString()
-        };
-
-        // Create navigation buttons if there are multiple pages
-        let components = [];
-        if (totalPages > 1) {
-            try {
-                const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-                
-                const buttons = new ActionRowBuilder()
-                    .addComponents(
-                        new ButtonBuilder()
-                            .setCustomId(`help_nav_first_${page}_${totalPages}`)
-                            .setLabel('⏪ First')
-                            .setStyle(ButtonStyle.Secondary)
-                            .setDisabled(page === 1),
-                        new ButtonBuilder()
-                            .setCustomId(`help_nav_prev_${page}_${totalPages}`)
-                            .setLabel('◀️ Previous')
-                            .setStyle(ButtonStyle.Primary)
-                            .setDisabled(page === 1),
-                        new ButtonBuilder()
-                            .setCustomId(`help_nav_next_${page}_${totalPages}`)
-                            .setLabel('Next ▶️')
-                            .setStyle(ButtonStyle.Primary)
-                            .setDisabled(page === totalPages),
-                        new ButtonBuilder()
-                            .setCustomId(`help_nav_last_${page}_${totalPages}`)
-                            .setLabel('Last ⏩')
-                            .setStyle(ButtonStyle.Secondary)
-                            .setDisabled(page === totalPages)
-                    );
-                
-                components = [buttons];
-            } catch (discordError) {
-                // Discord.js not available (probably in test environment)
-                // Add page navigation info to footer instead
-                embed.footer.text += ` | Use "help <page>" to navigate`;
-            }
+        // Schedule cleanup after 1 minute
+        if (result.components && result.components.length > 0) {
+            setTimeout(async () => {
+                try {
+                    // Try to edit the message to remove components
+                    if (ctx.isSlashCommand && (ctx.raw.replied || ctx.raw.deferred)) {
+                        await ctx.editReply({
+                            embeds: [result.embed],
+                            components: [] // Remove all components
+                        });
+                    }
+                } catch (error) {
+                    // Message might have been deleted or interaction expired
+                    console.log('Help cleanup: Message no longer accessible');
+                }
+            }, 60000); // 1 minute
         }
 
         return { 
-            embeds: [embed],
-            components: components
+            embeds: [result.embed],
+            components: result.components || []
         };
 
     } catch (error) {

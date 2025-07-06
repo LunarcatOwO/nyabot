@@ -1,6 +1,7 @@
 exports.name = 'dm';
 exports.description = 'Send a DM to a user (Root user only)';
 exports.ephemeral = true;
+exports.category = 'NyaBot Staff';
 exports.permissions = ['BotOwner']; // Use the proper permission system
 exports.options = [
     {
