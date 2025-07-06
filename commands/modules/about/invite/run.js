@@ -8,28 +8,23 @@ exports.execute = async (ctx) => {
         description: 'Add NyaBot to your Discord server!',
         fields: [
             {
-                name: '🎯 Recommended Permissions',
-                value: '• Ban Members\n• Kick Members\n• Manage Messages\n• View Channels\n• Send Messages\n• Embed Links\n• Use Slash Commands',
+                name: 'Permissions I need',
+                value: 'Administrator permissions',
                 inline: false
             },
             {
-                name: '⚡ Quick Setup',
-                value: '[Placeholder] After inviting, run `/help` to see available commands.',
+                name: 'Quick Setup',
+                value: 'Currently Nyabot after inviting will just work! No additional setup required. run the `/help` command to see available commands.',
                 inline: false
             },
             {
-                name: '🛠️ Admin Permissions',
-                value: '[Placeholder] For full functionality, consider granting Administrator permissions.',
+                name: 'Admin Permissions',
+                value: 'For full functionality, consider granting Administrator permissions to the user.',
                 inline: false
             },
             {
-                name: '📋 Bot ID',
-                value: `\`${ctx.raw.client.user.id}\``,
-                inline: true
-            },
-            {
-                name: '🌟 Support Server',
-                value: '[Placeholder] Join our support server for help!',
+                name: 'Support Server',
+                value: 'I wish we had one but not yet! Create a issue on GitHub if you need help.',
                 inline: true
             }
         ],
@@ -88,13 +83,13 @@ exports.execute = async (ctx) => {
                 new ButtonBuilder()
                     .setLabel('Invite NyaBot')
                     .setStyle(ButtonStyle.Link)
-                    .setURL(`https://discord.com/api/oauth2/authorize?client_id=${ctx.raw.client.user.id}&permissions=8&scope=bot%20applications.commands`)
+                    .setURL(`https://discord.com/oauth2/authorize?client_id=1389320877560303687`)
                     .setEmoji('🔗'),
-                new ButtonBuilder()
-                    .setLabel('Support Server')
-                    .setStyle(ButtonStyle.Link)
-                    .setURL('https://discord.gg/placeholder') // Replace with actual support server
-                    .setEmoji('🛠️')
+                // new ButtonBuilder()
+                //     .setLabel('Support Server')
+                //     .setStyle(ButtonStyle.Link)
+                //     .setURL('https://discord.gg/placeholder')
+                //     .setEmoji('🛠️')
             );
         
         components = [selectMenu, inviteButton];

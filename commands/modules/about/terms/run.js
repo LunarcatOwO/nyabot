@@ -49,7 +49,7 @@ exports.execute = async (ctx) => {
             url: ctx.raw.client.user.displayAvatarURL({ dynamic: true, size: 256 })
         },
         footer: {
-            text: 'NyaBot • Terms of Service • Last Updated: 2025-01-01'
+            text: 'NyaBot • Terms of Service • Last Updated: 2025-07-06'
         }
     };
 

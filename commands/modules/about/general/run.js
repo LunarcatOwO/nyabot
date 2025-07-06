@@ -9,19 +9,14 @@ exports.execute = async (ctx) => {
         description: 'Welcome to NyaBot! Your friendly Discord companion.',
         fields: [
             {
-                name: '📋 Description',
+                name: 'About Me!',
                 value: 'NyaBot is a versatile Discord bot designed to help manage your server with moderation tools, user utilities, and fun features.',
                 inline: false
             },
             {
-                name: '🛠️ Features',
+                name: 'Features I offer',
                 value: '• Moderation commands (ban, unban, banlist)\n• User information utilities\n• Server management tools\n• Status management\n• Help system with pagination',
                 inline: false
-            },
-            {
-                name: '📊 Version',
-                value: 'v1.0.0',
-                inline: true
             },
             {
                 name: '🏓 Uptime',

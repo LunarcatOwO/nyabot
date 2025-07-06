@@ -4,32 +4,32 @@ exports.execute = async (ctx) => {
     const { ActionRowBuilder, StringSelectMenuBuilder } = require('discord.js');
     
     const embed = {
-        title: '📄 About NyaBot - Copyright',
+        title: 'About NyaBot - Copyright',
         description: 'Copyright and licensing information for NyaBot.',
         fields: [
             {
-                name: '📄 License',
-                value: '[Placeholder] This bot is licensed under the MIT License.',
+                name: 'License',
+                value: 'Nyabot is licensed under GNU General Public License v3.0 (GPL-3.0).',
                 inline: false
             },
             {
-                name: '👤 Developer',
-                value: '[Placeholder] Developed by LunarcatOwO',
+                name: 'Developer',
+                value: 'Developed by LunarcatOwO',
                 inline: true
             },
             {
-                name: '📅 Copyright Year',
+                name: 'Copyright Year',
                 value: '© 2025',
                 inline: true
             },
             {
-                name: '⚖️ Legal Notice',
-                value: '[Placeholder] All rights reserved. This software is provided "as is" without warranty of any kind.',
+                name: 'Notice',
+                value: `This program comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute it under certain conditions; go to https://github.com/LunarcatOwO/nyabot/blob/main/LICENSE for details.`,
                 inline: false
             },
             {
-                name: '🔗 Source Code',
-                value: '[Placeholder] Source code may be available on GitHub.',
+                name: 'Source Code',
+                value: 'Source code is available on [GitHub](https://github.com/LunarcatOwO/NyaBot).',
                 inline: false
             }
         ],
