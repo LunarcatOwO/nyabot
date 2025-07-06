@@ -6,7 +6,7 @@ exports.execute = async (ctx) => {
     
     const embed = {
         title: 'About Me - General',
-        description: 'Thanks for choosing Me! The only bot you will need!',
+        description: 'Thanks for choosing Me!',
         fields: [
             {
                 name: 'About Me!',
