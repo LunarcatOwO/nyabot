@@ -47,10 +47,19 @@ exports.execute = async (interaction) => {
         // Load and execute the subcommand
         const subcommand = require(subcommandPath);
         
-        // Create context for the subcommand
-        const { createContext } = require('../../commands/load.js');
+        // Try to reset the timer with the about command's auto-cleanup timeout
+        try {
+            const { resetAutoCleanupTimer } = require('../../commands/load').helpers;
+            
+            if (interaction.message && interaction.message.interaction && aboutCommand.autoCleanup) {
+                const timerKey = `slash_${interaction.message.interaction.id}_${interaction.user.id}`;
+                resetAutoCleanupTimer(timerKey, interaction, aboutCommand.autoCleanup);
+            }
+        } catch (timerError) {
+            // Silently handle timer reset failures
+        }
         
-        // Create a mock context since we can't access the internal createContext function
+        // Create context for the subcommand
         const ctx = {
             user: interaction.user,
             guild: interaction.guild,

@@ -2,6 +2,9 @@
 const fs = require('fs');
 const path = require('path');
 
+// Store active cleanup timers for resetting
+const activeCleanupTimers = new Map();
+
 function hasPermission(member, requiredPermissions, userId = null) {
     if (!requiredPermissions || requiredPermissions.length === 0) {
         return true; // No permissions required
@@ -51,19 +54,40 @@ function generateInteractionId(baseId, userId = null, userLocked = false) {
 }
 
 /**
- * Schedule auto-cleanup for an interaction response
+ * Schedule auto-cleanup for an interaction response with timer reset capability
  * @param {Object} interactionOrMessage - The Discord interaction or message
  * @param {number} timeoutMs - Timeout in milliseconds
  * @param {string} context - Context for logging (e.g., command name)
  * @param {Object} originalResponse - The original response message (for text commands)
+ * @param {string} messageId - Optional message ID for timer tracking (auto-generated if not provided)
+ * @returns {string} - The message ID used for timer tracking
  */
-function scheduleAutoCleanup(interactionOrMessage, timeoutMs, context = 'interaction', originalResponse = null) {
-    if (!timeoutMs) return;
+function scheduleAutoCleanup(interactionOrMessage, timeoutMs, context = 'interaction', originalResponse = null, messageId = null) {
+    if (!timeoutMs) return null;
     
     const isSlashCommand = interactionOrMessage && typeof interactionOrMessage.reply === 'function' && interactionOrMessage.commandName;
     const isMessage = interactionOrMessage && interactionOrMessage.author && interactionOrMessage.channel && typeof interactionOrMessage.channel.send === 'function';
     
-    setTimeout(async () => {
+    // Generate or use provided message ID for timer tracking
+    let timerKey = messageId;
+    if (!timerKey) {
+        if (isSlashCommand) {
+            timerKey = `slash_${interactionOrMessage.id}_${interactionOrMessage.user.id}`;
+        } else if (isMessage) {
+            timerKey = `message_${interactionOrMessage.id}_${interactionOrMessage.author.id}`;
+        } else {
+            timerKey = `unknown_${Date.now()}_${Math.random()}`;
+        }
+    }
+    
+    // Clear existing timer if one exists for this message
+    if (activeCleanupTimers.has(timerKey)) {
+        clearTimeout(activeCleanupTimers.get(timerKey));
+        activeCleanupTimers.delete(timerKey);
+    }
+    
+    // Schedule new cleanup timer
+    const timerId = setTimeout(async () => {
         try {
             if (isSlashCommand && (interactionOrMessage.replied || interactionOrMessage.deferred)) {
                 // Handle slash command interactions
@@ -87,8 +111,44 @@ function scheduleAutoCleanup(interactionOrMessage, timeoutMs, context = 'interac
             }
         } catch (error) {
             // Silently handle cleanup failures (message may have been deleted, etc.)
+        } finally {
+            // Remove timer from active timers map
+            activeCleanupTimers.delete(timerKey);
         }
     }, timeoutMs);
+    
+    // Store the timer for potential cancellation/reset
+    activeCleanupTimers.set(timerKey, timerId);
+    
+    return timerKey;
+}
+
+/**
+ * Reset the auto-cleanup timer for a specific message/interaction
+ * @param {string} timerKey - The timer key returned by scheduleAutoCleanup
+ * @param {Object} interactionOrMessage - The Discord interaction or message
+ * @param {number} timeoutMs - New timeout in milliseconds
+ * @param {string} context - Context for logging
+ * @param {Object} originalResponse - The original response message (for text commands)
+ * @returns {string} - The timer key for continued tracking
+ */
+function resetAutoCleanupTimer(timerKey, interactionOrMessage, timeoutMs, context = 'interaction', originalResponse = null) {
+    if (!timerKey || !timeoutMs) return timerKey;
+    
+    // Use the existing scheduleAutoCleanup function with the same timer key
+    // This will automatically clear the old timer and create a new one
+    return scheduleAutoCleanup(interactionOrMessage, timeoutMs, context, originalResponse, timerKey);
+}
+
+/**
+ * Cancel an active auto-cleanup timer
+ * @param {string} timerKey - The timer key to cancel
+ */
+function cancelAutoCleanupTimer(timerKey) {
+    if (!timerKey || !activeCleanupTimers.has(timerKey)) return;
+    
+    clearTimeout(activeCleanupTimers.get(timerKey));
+    activeCleanupTimers.delete(timerKey);
 }
 
 /**
@@ -135,6 +195,22 @@ function createContext(interaction, args = [], ephemeral = false, userLocked = f
         isMessage,
         userLocked, // Whether interactions should be locked to this user
         autoCleanup, // Auto-cleanup timeout in milliseconds
+        timerKey: null, // Will be set when timer is started
+        
+        // Timer management methods
+        resetTimer: function() {
+            if (this.timerKey && this.autoCleanup) {
+                this.timerKey = resetAutoCleanupTimer(this.timerKey, interaction, this.autoCleanup, 'timer-reset');
+            }
+            return this.timerKey;
+        },
+        
+        cancelTimer: function() {
+            if (this.timerKey) {
+                cancelAutoCleanupTimer(this.timerKey);
+                this.timerKey = null;
+            }
+        },
         
         // Unified response methods
         reply: async (content) => {
@@ -286,7 +362,7 @@ function wrapCommand(cmd) {
                                 
                                 // Schedule auto-cleanup if enabled and result has components
                                 if (subCtx.autoCleanup && result.components && result.components.length > 0) {
-                                    scheduleAutoCleanup(interaction, subCtx.autoCleanup, `subcommand '${cmd.name} ${subcommandName}'`, response);
+                                    subCtx.timerKey = scheduleAutoCleanup(interaction, subCtx.autoCleanup, `subcommand '${cmd.name} ${subcommandName}'`, response);
                                 }
                             }
                             return;
@@ -302,7 +378,7 @@ function wrapCommand(cmd) {
                         
                         // Schedule auto-cleanup if enabled and result has components
                         if (ctx.autoCleanup && result.components && result.components.length > 0) {
-                            scheduleAutoCleanup(interaction, ctx.autoCleanup, `command '${cmd.name}'`, response);
+                            ctx.timerKey = scheduleAutoCleanup(interaction, ctx.autoCleanup, `command '${cmd.name}'`, response);
                         }
                     }
                 }
@@ -464,5 +540,7 @@ module.exports.helpers = {
     generateInteractionId,
     checkInteractionAuthorization,
     scheduleAutoCleanup,
+    resetAutoCleanupTimer,
+    cancelAutoCleanupTimer,
     ...allHelpers
 };

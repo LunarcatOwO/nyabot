@@ -56,33 +56,28 @@ exports.execute = async (ctx) => {
                         {
                             label: 'General Information',
                             description: 'About NyaBot and its features',
-                            value: 'general',
-                            emoji: '🤖'
+                            value: 'general'
                         },
                         {
                             label: 'Copyright',
                             description: 'Copyright and licensing information',
-                            value: 'copyright',
-                            emoji: '📄'
+                            value: 'copyright'
                         },
                         {
                             label: 'Invite Bot',
                             description: 'Get invitation link for the bot',
                             value: 'invite',
-                            emoji: '🔗',
                             default: true
                         },
                         {
                             label: 'Privacy Policy',
                             description: 'Privacy and data handling policy',
-                            value: 'privacy',
-                            emoji: '🔒'
+                            value: 'privacy'
                         },
                         {
                             label: 'Terms of Service',
                             description: 'Terms and conditions of use',
-                            value: 'terms',
-                            emoji: '📜'
+                            value: 'terms'
                         }
                     ])
             );

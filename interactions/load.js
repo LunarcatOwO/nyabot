@@ -5,6 +5,32 @@ const path = require('path');
 const interactions = new Map();
 
 /**
+ * Try to reset the auto-cleanup timer for an interaction if one exists
+ * @param {Object} interaction - The Discord interaction
+ */
+function tryResetTimer(interaction) {
+    try {
+        const { resetAutoCleanupTimer } = require('../commands/load').helpers;
+        
+        // Try to generate a timer key based on the original command
+        let timerKey = null;
+        
+        // If this is a component interaction on a message that was created by a slash command
+        if (interaction.message && interaction.message.interaction) {
+            timerKey = `slash_${interaction.message.interaction.id}_${interaction.user.id}`;
+        }
+        
+        if (timerKey) {
+            // Reset timer with a reasonable default timeout (30 seconds)
+            // Individual interaction handlers can override this if needed
+            resetAutoCleanupTimer(timerKey, interaction, 30000);
+        }
+    } catch (error) {
+        // Silently handle timer reset failures - not all interactions will have timers
+    }
+}
+
+/**
  * Load all interaction handlers from the interactions directory
  */
 function loadInteractions() {
@@ -85,6 +111,9 @@ async function handleInteraction(interaction) {
             console.warn(`⚠️ No handler found for interaction: ${interaction.customId}`);
             return;
         }
+        
+        // Try to reset auto-cleanup timer before executing handler
+        tryResetTimer(interaction);
         
         // Execute the interaction handler
         await handler.execute(interaction);
