@@ -97,21 +97,31 @@ client.once("ready", async () => {
   if (helpers.guild && helpers.guild.cleanup) {
     helpers.guild.cleanup.startPeriodicCleanup(60); // 60 minutes
   }
+  
+  // Start periodic guild data synchronization (check every hour)
+  if (helpers.guild && helpers.guild.sync) {
+    helpers.guild.sync.startPeriodicSync(client, 60); // 60 minutes = 1 hour
+  }
 });
 
 // Guild join event - cancel any pending data purge
 client.on("guildCreate", async (guild) => {
   console.log(`✅ Joined guild: ${guild.name} (${guild.id})`);
   
-  // Store guild information in database
+  // Store guild information in database using sync helper
   try {
-    const db = require('./helpers/db');
-    await db.write.upsertGuild(guild.id, {
-      name: guild.name,
-      icon: guild.iconURL(),
-      ownerId: guild.ownerId,
-      memberCount: guild.memberCount
-    });
+    if (helpers.guild && helpers.guild.sync) {
+      await helpers.guild.sync.syncGuildData(guild);
+    } else {
+      // Fallback to direct database write if sync helper not available
+      const db = require('./helpers/db');
+      await db.write.upsertGuild(guild.id, {
+        name: guild.name,
+        icon: guild.iconURL(),
+        ownerId: guild.ownerId,
+        memberCount: guild.memberCount
+      });
+    }
     
     // Cancel any pending data purge for this guild (in case we rejoined)
     if (helpers.guild && helpers.guild.cleanup) {
@@ -133,6 +143,29 @@ client.on("guildDelete", async (guild) => {
     }
   } catch (error) {
     console.error('❌ Error handling guild departure:', error.message);
+  }
+});
+
+// Guild update event - sync guild data when guild information changes
+client.on("guildUpdate", async (oldGuild, newGuild) => {
+  console.log(`🔄 Guild updated: ${newGuild.name} (${newGuild.id})`);
+  
+  // Check if relevant data changed
+  const relevantChange = (
+    oldGuild.name !== newGuild.name ||
+    oldGuild.iconURL() !== newGuild.iconURL() ||
+    oldGuild.ownerId !== newGuild.ownerId ||
+    oldGuild.memberCount !== newGuild.memberCount
+  );
+  
+  if (relevantChange) {
+    try {
+      if (helpers.guild && helpers.guild.sync) {
+        await helpers.guild.sync.syncGuildData(newGuild);
+      }
+    } catch (error) {
+      console.error('❌ Error syncing guild update:', error.message);
+    }
   }
 });
 
