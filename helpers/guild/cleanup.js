@@ -32,7 +32,7 @@ async function cancelGuildDeparture(guildId) {
     // First check if there's a pending departure
     const existingDeparture = await readFromDB(`
       SELECT * FROM guild_departures 
-      WHERE guild_id = ? AND is_purged = FALSE
+      WHERE guild_id = ?
     `, [guildId]);
 
     if (existingDeparture.length > 0) {
@@ -61,48 +61,14 @@ async function purgeGuildData(guildId) {
   try {
     console.log(`🗑️ Starting data purge for guild: ${guildId}`);
     
-    // First, collect data to show what will be purged
+    // First, collect data counts to show what will be purged
     const dataDump = {
-      userData: await readFromDB('SELECT * FROM user_data WHERE guild_id = ?', [guildId]),
-      commandLogs: await readFromDB('SELECT * FROM command_logs WHERE guild_id = ?', [guildId]),
-      bans: await readFromDB('SELECT * FROM bans WHERE guild_id = ?', [guildId]),
-      warnings: await readFromDB('SELECT * FROM warnings WHERE guild_id = ?', [guildId]),
-      guildInfo: await readFromDB('SELECT * FROM guilds WHERE id = ?', [guildId])
+      userData: await readFromDB('SELECT COUNT(*) as count FROM user_data WHERE guild_id = ?', [guildId]),
+      commandLogs: await readFromDB('SELECT COUNT(*) as count FROM command_logs WHERE guild_id = ?', [guildId]),
+      bans: await readFromDB('SELECT COUNT(*) as count FROM bans WHERE guild_id = ?', [guildId]),
+      warnings: await readFromDB('SELECT COUNT(*) as count FROM warnings WHERE guild_id = ?', [guildId]),
+      guildInfo: await readFromDB('SELECT COUNT(*) as count FROM guilds WHERE id = ?', [guildId])
     };
-
-    console.log('📊 DATA PURGE DUMP:');
-    console.log('==================');
-    console.log(`Guild ID: ${guildId}`);
-    console.log(`User Data Records: ${dataDump.userData.length}`);
-    if (dataDump.userData.length > 0) {
-      console.log('User Data:', JSON.stringify(dataDump.userData, (key, value) => 
-        typeof value === 'bigint' ? value.toString() : value, 2));
-    }
-    
-    console.log(`Command Log Records: ${dataDump.commandLogs.length}`);
-    if (dataDump.commandLogs.length > 0) {
-      console.log('Command Logs:', JSON.stringify(dataDump.commandLogs, (key, value) => 
-        typeof value === 'bigint' ? value.toString() : value, 2));
-    }
-    
-    console.log(`Ban Records: ${dataDump.bans.length}`);
-    if (dataDump.bans.length > 0) {
-      console.log('Bans:', JSON.stringify(dataDump.bans, (key, value) => 
-        typeof value === 'bigint' ? value.toString() : value, 2));
-    }
-    
-    console.log(`Warning Records: ${dataDump.warnings.length}`);
-    if (dataDump.warnings.length > 0) {
-      console.log('Warnings:', JSON.stringify(dataDump.warnings, (key, value) => 
-        typeof value === 'bigint' ? value.toString() : value, 2));
-    }
-    
-    console.log(`Guild Info Records: ${dataDump.guildInfo.length}`);
-    if (dataDump.guildInfo.length > 0) {
-      console.log('Guild Info:', JSON.stringify(dataDump.guildInfo, (key, value) => 
-        typeof value === 'bigint' ? value.toString() : value, 2));
-    }
-    console.log('==================');
 
     const queries = [
       // Remove user data for this guild
@@ -140,7 +106,7 @@ async function purgeGuildData(guildId) {
     await executeTransaction(queries);
     
     console.log(`✅ Successfully purged all data for guild: ${guildId}`);
-    console.log(`📋 Summary: Deleted ${dataDump.userData.length} user data, ${dataDump.commandLogs.length} command logs, ${dataDump.bans.length} bans, ${dataDump.warnings.length} warnings, ${dataDump.guildInfo.length} guild info records`);
+    console.log(`📋 Summary: Deleted ${dataDump.userData[0].count} user data, ${dataDump.commandLogs[0].count} command logs, ${dataDump.bans[0].count} bans, ${dataDump.warnings[0].count} warnings, ${dataDump.guildInfo[0].count} guild info records`);
     return true;
   } catch (error) {
     console.error(`❌ Failed to purge data for guild ${guildId}:`, error.message);
