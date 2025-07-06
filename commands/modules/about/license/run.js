@@ -17,11 +17,6 @@ exports.execute = async (ctx) => {
                 inline: true
             },
             {
-                name: 'Year',
-                value: '© 2025',
-                inline: true
-            },
-            {
                 name: 'Notice',
                 value: `This program comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute it under certain conditions; go to [LICENSE FILE](https://github.com/LunarcatOwO/nyabot/blob/main/LICENSE) on github for details.`,
                 inline: false
@@ -30,7 +25,12 @@ exports.execute = async (ctx) => {
                 name: 'Source Code',
                 value: 'Source code is available on [GitHub](https://github.com/LunarcatOwO/NyaBot).',
                 inline: false
-            }
+            },
+            {
+                name: 'License Year',
+                value: '2025',
+                inline: true
+            },
         ],
         color: 0xFF9900,
         timestamp: new Date().toISOString(),
