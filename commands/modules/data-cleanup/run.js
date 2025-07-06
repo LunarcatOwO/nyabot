@@ -63,18 +63,8 @@ exports.execute = async (ctx) => {
                         title: '📊 Guild Data Cleanup Status',
                         fields: [
                             {
-                                name: '📈 Total Departures Recorded',
-                                value: stats.total_departures.toString(),
-                                inline: true
-                            },
-                            {
-                                name: '⏳ Pending Purges',
-                                value: stats.pending_purges.toString(),
-                                inline: true
-                            },
-                            {
-                                name: '✅ Completed Purges',
-                                value: stats.completed_purges.toString(),
+                                name: '⏳ Pending Departures',
+                                value: stats.pending_departures.toString(),
                                 inline: true
                             },
                             {

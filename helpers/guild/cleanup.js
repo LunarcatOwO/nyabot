@@ -14,9 +14,7 @@ async function recordGuildDeparture(guild) {
       ON DUPLICATE KEY UPDATE
         guild_name = VALUES(guild_name),
         left_at = CURRENT_TIMESTAMP,
-        purge_scheduled_at = VALUES(purge_scheduled_at),
-        is_purged = FALSE,
-        purged_at = NULL
+        purge_scheduled_at = VALUES(purge_scheduled_at)
     `, [guild.id, guild.name, purgeScheduledAt]);
     
     console.log(`✅ Recorded departure from guild: ${guild.name} (${guild.id}). Data will be purged after 48 hours.`);
@@ -44,7 +42,7 @@ async function cancelGuildDeparture(guildId) {
 
     const result = await writeToDB(`
       DELETE FROM guild_departures 
-      WHERE guild_id = ? AND is_purged = FALSE
+      WHERE guild_id = ?
     `, [guildId]);
     
     if (result.affectedRows > 0) {
@@ -68,6 +66,7 @@ async function purgeGuildData(guildId) {
       userData: await readFromDB('SELECT * FROM user_data WHERE guild_id = ?', [guildId]),
       commandLogs: await readFromDB('SELECT * FROM command_logs WHERE guild_id = ?', [guildId]),
       bans: await readFromDB('SELECT * FROM bans WHERE guild_id = ?', [guildId]),
+      warnings: await readFromDB('SELECT * FROM warnings WHERE guild_id = ?', [guildId]),
       guildInfo: await readFromDB('SELECT * FROM guilds WHERE id = ?', [guildId])
     };
 
@@ -89,6 +88,12 @@ async function purgeGuildData(guildId) {
     console.log(`Ban Records: ${dataDump.bans.length}`);
     if (dataDump.bans.length > 0) {
       console.log('Bans:', JSON.stringify(dataDump.bans, (key, value) => 
+        typeof value === 'bigint' ? value.toString() : value, 2));
+    }
+    
+    console.log(`Warning Records: ${dataDump.warnings.length}`);
+    if (dataDump.warnings.length > 0) {
+      console.log('Warnings:', JSON.stringify(dataDump.warnings, (key, value) => 
         typeof value === 'bigint' ? value.toString() : value, 2));
     }
     
@@ -115,14 +120,19 @@ async function purgeGuildData(guildId) {
         query: 'DELETE FROM bans WHERE guild_id = ?',
         params: [guildId]
       },
+      // Remove warnings for this guild
+      {
+        query: 'DELETE FROM warnings WHERE guild_id = ?',
+        params: [guildId]
+      },
       // Remove guild information
       {
         query: 'DELETE FROM guilds WHERE id = ?',
         params: [guildId]
       },
-      // Mark the departure as purged
+      // Remove the departure record (no need to mark as purged since we're deleting everything)
       {
-        query: 'UPDATE guild_departures SET is_purged = TRUE, purged_at = CURRENT_TIMESTAMP WHERE guild_id = ?',
+        query: 'DELETE FROM guild_departures WHERE guild_id = ?',
         params: [guildId]
       }
     ];
@@ -130,7 +140,7 @@ async function purgeGuildData(guildId) {
     await executeTransaction(queries);
     
     console.log(`✅ Successfully purged all data for guild: ${guildId}`);
-    console.log(`📋 Summary: Deleted ${dataDump.userData.length} user data, ${dataDump.commandLogs.length} command logs, ${dataDump.bans.length} bans, ${dataDump.guildInfo.length} guild info records`);
+    console.log(`📋 Summary: Deleted ${dataDump.userData.length} user data, ${dataDump.commandLogs.length} command logs, ${dataDump.bans.length} bans, ${dataDump.warnings.length} warnings, ${dataDump.guildInfo.length} guild info records`);
     return true;
   } catch (error) {
     console.error(`❌ Failed to purge data for guild ${guildId}:`, error.message);
@@ -143,12 +153,11 @@ async function purgeGuildData(guildId) {
  */
 async function checkAndPurgeExpiredGuilds() {
   try {
-    // Find guilds that are ready for purging (48+ hours after departure and not yet purged)
+    // Find guilds that are ready for purging (48+ hours after departure)
     const expiredGuilds = await readFromDB(`
       SELECT guild_id, guild_name, left_at, purge_scheduled_at
       FROM guild_departures 
-      WHERE purge_scheduled_at <= CURRENT_TIMESTAMP 
-        AND is_purged = FALSE
+      WHERE purge_scheduled_at <= CURRENT_TIMESTAMP
     `);
 
     if (expiredGuilds.length === 0) {
@@ -185,17 +194,13 @@ async function getGuildDepartureStats() {
   try {
     const stats = await readFromDB(`
       SELECT 
-        COUNT(*) as total_departures,
-        COUNT(CASE WHEN is_purged = FALSE THEN 1 END) as pending_purges,
-        COUNT(CASE WHEN is_purged = TRUE THEN 1 END) as completed_purges,
+        COUNT(*) as pending_departures,
         MIN(purge_scheduled_at) as next_purge_scheduled
       FROM guild_departures
     `);
 
     return stats[0] || {
-      total_departures: 0,
-      pending_purges: 0,
-      completed_purges: 0,
+      pending_departures: 0,
       next_purge_scheduled: null
     };
   } catch (error) {

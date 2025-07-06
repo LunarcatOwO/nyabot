@@ -92,6 +92,47 @@ async function getGuildDeparture(guildId) {
   return results.length > 0 ? results[0] : null;
 }
 
+// Get user warnings for a specific guild
+async function getUserWarnings(userId, guildId) {
+  const { readFromDB } = require('./init');
+  const query = `
+    SELECT w.*, u.username as warned_by_username
+    FROM warnings w
+    LEFT JOIN users u ON w.warned_by = u.id
+    WHERE w.user_id = ? AND w.guild_id = ? AND w.is_active = TRUE
+    ORDER BY w.warned_at DESC
+  `;
+  
+  return await readFromDB(query, [userId, guildId]);
+}
+
+// Get warning count for a user in a specific guild
+async function getUserWarningCount(userId, guildId) {
+  const { readFromDB } = require('./init');
+  const query = `
+    SELECT COUNT(*) as count 
+    FROM warnings 
+    WHERE user_id = ? AND guild_id = ? AND is_active = TRUE
+  `;
+  
+  const results = await readFromDB(query, [userId, guildId]);
+  return results[0].count;
+}
+
+// Get a specific warning by ID
+async function getWarningById(warningId, guildId) {
+  const { readFromDB } = require('./init');
+  const query = `
+    SELECT w.*, u.username as warned_by_username
+    FROM warnings w
+    LEFT JOIN users u ON w.warned_by = u.id
+    WHERE w.id = ? AND w.guild_id = ?
+  `;
+  
+  const results = await readFromDB(query, [warningId, guildId]);
+  return results.length > 0 ? results[0] : null;
+}
+
 module.exports = {
   getUserData,
   getBotConfig,
@@ -99,5 +140,8 @@ module.exports = {
   isUserBanned,
   getUserBanCount,
   getUserBans,
-  getGuildDeparture
+  getGuildDeparture,
+  getUserWarnings,
+  getUserWarningCount,
+  getWarningById
 };

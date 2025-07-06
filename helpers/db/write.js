@@ -112,6 +112,29 @@ async function logUnban(userId, guildId) {
   return await writeToDB(query, [userId, guildId]);
 }
 
+// Log a warning action
+async function logWarning(userId, guildId, warnedBy, reason = 'No reason provided') {
+  const { writeToDB } = require('./init');
+  const query = `
+    INSERT INTO warnings (user_id, guild_id, warned_by, reason)
+    VALUES (?, ?, ?, ?)
+  `;
+  
+  return await writeToDB(query, [userId, guildId, warnedBy, reason]);
+}
+
+// Remove a warning (make it inactive)
+async function removeWarning(warningId, guildId) {
+  const { writeToDB } = require('./init');
+  const query = `
+    UPDATE warnings 
+    SET is_active = FALSE
+    WHERE id = ? AND guild_id = ?
+  `;
+  
+  return await writeToDB(query, [warningId, guildId]);
+}
+
 module.exports = {
   upsertUser,
   upsertGuild,
@@ -119,5 +142,7 @@ module.exports = {
   logCommand,
   setBotConfig,
   logBan,
-  logUnban
+  logUnban,
+  logWarning,
+  removeWarning
 };

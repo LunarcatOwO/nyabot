@@ -211,12 +211,29 @@ async function setupDatabase() {
         guild_name VARCHAR(100),
         left_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         purge_scheduled_at TIMESTAMP NULL,
-        purged_at TIMESTAMP NULL,
-        is_purged BOOLEAN DEFAULT FALSE,
         
         INDEX idx_left_at (left_at),
-        INDEX idx_purge_scheduled (purge_scheduled_at),
-        INDEX idx_is_purged (is_purged)
+        INDEX idx_purge_scheduled (purge_scheduled_at)
+      )
+    `);
+
+    // Create warnings table for tracking user warnings
+    await writeToDB(`
+      CREATE TABLE IF NOT EXISTS warnings (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id BIGINT NOT NULL,
+        guild_id BIGINT NOT NULL,
+        warned_by BIGINT NOT NULL,
+        reason TEXT,
+        warned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        is_active BOOLEAN DEFAULT TRUE,
+        
+        INDEX idx_user_id (user_id),
+        INDEX idx_guild_id (guild_id),
+        INDEX idx_warned_by (warned_by),
+        INDEX idx_warned_at (warned_at),
+        INDEX idx_is_active (is_active),
+        INDEX idx_user_guild (user_id, guild_id)
       )
     `);
     
