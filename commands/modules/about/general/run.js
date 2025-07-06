@@ -19,7 +19,7 @@ exports.execute = async (ctx) => {
                 inline: false
             },
             {
-                name: 'I\'ve been online for',
+                name: '🟢 I\'ve been online for',
                 value: `${Math.floor(process.uptime())} seconds`,
                 inline: true
             },
