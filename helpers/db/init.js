@@ -203,6 +203,22 @@ async function setupDatabase() {
         INDEX idx_is_active (is_active)
       )
     `);
+
+    // Create guild_departures table for tracking when bot leaves servers
+    await writeToDB(`
+      CREATE TABLE IF NOT EXISTS guild_departures (
+        guild_id BIGINT PRIMARY KEY,
+        guild_name VARCHAR(100),
+        left_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        purge_scheduled_at TIMESTAMP NULL,
+        purged_at TIMESTAMP NULL,
+        is_purged BOOLEAN DEFAULT FALSE,
+        
+        INDEX idx_left_at (left_at),
+        INDEX idx_purge_scheduled (purge_scheduled_at),
+        INDEX idx_is_purged (is_purged)
+      )
+    `);
     
     console.log('Database schema setup completed successfully');
   } catch (error) {

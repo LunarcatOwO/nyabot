@@ -92,6 +92,48 @@ client.once("ready", async () => {
   // Register slash commands
   await registerSlashCommands();
   helpers.status.setStatus.startStatusRotation(client); // Start status rotation every 10 seconds
+  
+  // Start periodic guild data cleanup (check every hour)
+  if (helpers.guild && helpers.guild.cleanup) {
+    helpers.guild.cleanup.startPeriodicCleanup(60); // 60 minutes
+  }
+});
+
+// Guild join event - cancel any pending data purge
+client.on("guildCreate", async (guild) => {
+  console.log(`✅ Joined guild: ${guild.name} (${guild.id})`);
+  
+  // Store guild information in database
+  try {
+    const db = require('./helpers/db');
+    await db.write.upsertGuild(guild.id, {
+      name: guild.name,
+      icon: guild.iconURL(),
+      ownerId: guild.ownerId,
+      memberCount: guild.memberCount
+    });
+    
+    // Cancel any pending data purge for this guild (in case we rejoined)
+    if (helpers.guild && helpers.guild.cleanup) {
+      await helpers.guild.cleanup.cancelGuildDeparture(guild.id);
+    }
+  } catch (error) {
+    console.error('❌ Error handling guild join:', error.message);
+  }
+});
+
+// Guild leave event - schedule data purge after 48 hours
+client.on("guildDelete", async (guild) => {
+  console.log(`❌ Left guild: ${guild.name} (${guild.id})`);
+  
+  // Record the departure and schedule data purge
+  try {
+    if (helpers.guild && helpers.guild.cleanup) {
+      await helpers.guild.cleanup.recordGuildDeparture(guild);
+    }
+  } catch (error) {
+    console.error('❌ Error handling guild departure:', error.message);
+  }
 });
 
 // Graceful shutdown handling

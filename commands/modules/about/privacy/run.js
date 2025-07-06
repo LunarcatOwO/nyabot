@@ -29,7 +29,7 @@ exports.execute = async (ctx) => {
             },
             {
                 name: '🗑️ Data Deletion',
-                value: '[Placeholder] You can request data deletion by contacting us. Data is automatically purged when the bot leaves a server.',
+                value: 'You can request data deletion by contacting us. **Data is automatically purged 48 hours after the bot leaves a server.** This includes user data, command logs, ban records, and all server-specific information.',
                 inline: false
             },
             {

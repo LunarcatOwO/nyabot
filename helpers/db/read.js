@@ -80,11 +80,24 @@ async function getUserBans(userId) {
   return await readFromDB(query, [userId]);
 }
 
+// Get guild departure information
+async function getGuildDeparture(guildId) {
+  const { readFromDB } = require('./init');
+  const query = `
+    SELECT * FROM guild_departures 
+    WHERE guild_id = ?
+  `;
+  
+  const results = await readFromDB(query, [guildId]);
+  return results.length > 0 ? results[0] : null;
+}
+
 module.exports = {
   getUserData,
   getBotConfig,
   getDBStats,
   isUserBanned,
   getUserBanCount,
-  getUserBans
+  getUserBans,
+  getGuildDeparture
 };
