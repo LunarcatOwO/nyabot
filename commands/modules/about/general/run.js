@@ -5,21 +5,21 @@ exports.execute = async (ctx) => {
     const { ActionRowBuilder, StringSelectMenuBuilder } = require('discord.js');
     
     const embed = {
-        title: '🤖 About NyaBot - General',
+        title: 'About Me - General',
         description: 'Welcome to NyaBot! Your friendly Discord companion.',
         fields: [
             {
                 name: 'About Me!',
-                value: 'NyaBot is a versatile Discord bot designed to help manage your server with moderation tools, user utilities, and fun features.',
+                value: 'I am NyaBot, and I\'m trying to be the general purpose discord bot for your server. Maybe even the only bot you need!',
                 inline: false
             },
             {
-                name: 'Features I offer',
-                value: '• Moderation commands (ban, unban, banlist)\n• User information utilities\n• Server management tools\n• Status management\n• Help system with pagination',
+                name: 'Features I currently offer',
+                value: '• Moderation commands (ban, unban, banlist)\n• User information utilities\n• Server management tools',
                 inline: false
             },
             {
-                name: '🏓 Uptime',
+                name: 'I\'ve been online for',
                 value: `${Math.floor(process.uptime())} seconds`,
                 inline: true
             },

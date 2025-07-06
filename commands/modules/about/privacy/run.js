@@ -4,7 +4,7 @@ exports.execute = async (ctx) => {
     const { ActionRowBuilder, StringSelectMenuBuilder } = require('discord.js');
     
     const embed = {
-        title: '🔒 About NyaBot - Privacy Policy',
+        title: 'About Me - Privacy Policy (NOT COMPLETED)',
         description: 'How NyaBot handles your data and privacy.',
         fields: [
             {
