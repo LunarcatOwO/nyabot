@@ -4,6 +4,8 @@ exports.category = 'Moderation';
 exports.permissions = ['BanMembers', 'ModerateMembers']; // User needs either permission
 exports.guildOnly = true; // Can only be used in servers
 exports.ephemeral = true; // Make response ephemeral (only visible to user) for slash commands
+exports.userLocked = true; // Lock interactions to the user who triggered the command
+exports.autoCleanup = 45000; // Auto-remove components after 45 seconds
 exports.options = [
     {
         name: 'page',

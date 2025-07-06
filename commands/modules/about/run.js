@@ -3,6 +3,8 @@ exports.description = 'Information about NyaBot';
 exports.category = 'Information';
 exports.defaultSubcommand = 'general';
 exports.ephemeral = true; // Keep information responses private
+exports.userLocked = true; // Lock interactions to the user who triggered the command
+exports.autoCleanup = 30000; // Auto-remove components after 30 seconds
 
 exports.execute = async (ctx) => {
     // This will redirect to the general subcommand by default

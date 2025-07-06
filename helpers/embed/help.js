@@ -1,5 +1,5 @@
 /**
- * Helper function to generate help embed with categorized commands and pagination
+ * Helper functions to generate help embed with categorized commands and pagination
  */
 
 function generateHelpEmbed(commands, page = 1) {
@@ -81,19 +81,18 @@ function generateHelpEmbed(commands, page = 1) {
 
 function generateHelpButtons(currentPage, totalPages, userId) {
     const components = [];
+    const commandLoader = require('../../commands/load');
 
     // Add category dropdown if there are multiple categories
     if (totalPages > 1) {
         try {
             const { ActionRowBuilder, StringSelectMenuBuilder } = require('discord.js');
             
-            // We need the categories list to build the dropdown
-            // This is a bit of a workaround since we don't have the categories here
-            // We'll build a generic dropdown that gets populated by the caller
+            const selectId = commandLoader.helpers.generateInteractionId('help_category', userId, true);
             const selectMenu = new ActionRowBuilder()
                 .addComponents(
                     new StringSelectMenuBuilder()
-                        .setCustomId(`help_category_${userId}_${Date.now()}`)
+                        .setCustomId(selectId)
                         .setPlaceholder('📂 Select a category...')
                         .setMaxValues(1)
                         // Options will be added by the caller
@@ -113,22 +112,22 @@ function generateHelpButtons(currentPage, totalPages, userId) {
             const buttons = new ActionRowBuilder()
                 .addComponents(
                     new ButtonBuilder()
-                        .setCustomId(`help_nav_first_${currentPage}_${totalPages}_${userId}_${Date.now()}`)
+                        .setCustomId(commandLoader.helpers.generateInteractionId(`help_nav_first_${currentPage}_${totalPages}`, userId, true))
                         .setLabel('⏪ First Category')
                         .setStyle(ButtonStyle.Secondary)
                         .setDisabled(currentPage === 1),
                     new ButtonBuilder()
-                        .setCustomId(`help_nav_prev_${currentPage}_${totalPages}_${userId}_${Date.now()}`)
+                        .setCustomId(commandLoader.helpers.generateInteractionId(`help_nav_prev_${currentPage}_${totalPages}`, userId, true))
                         .setLabel('◀️ Previous')
                         .setStyle(ButtonStyle.Primary)
                         .setDisabled(currentPage === 1),
                     new ButtonBuilder()
-                        .setCustomId(`help_nav_next_${currentPage}_${totalPages}_${userId}_${Date.now()}`)
+                        .setCustomId(commandLoader.helpers.generateInteractionId(`help_nav_next_${currentPage}_${totalPages}`, userId, true))
                         .setLabel('Next ▶️')
                         .setStyle(ButtonStyle.Primary)
                         .setDisabled(currentPage === totalPages),
                     new ButtonBuilder()
-                        .setCustomId(`help_nav_last_${currentPage}_${totalPages}_${userId}_${Date.now()}`)
+                        .setCustomId(commandLoader.helpers.generateInteractionId(`help_nav_last_${currentPage}_${totalPages}`, userId, true))
                         .setLabel('Last Category ⏩')
                         .setStyle(ButtonStyle.Secondary)
                         .setDisabled(currentPage === totalPages)

@@ -8,9 +8,8 @@ const TOKEN = process.env.TOKEN;
 // Prepare commands for registration
 const commands = Object.entries(load)
     .filter(([key, cmd]) => {
-        // Skip function exports (like getAvailableCommands)
-        if (typeof cmd === 'function') {
-            console.log(`Skipping function export: ${key}`);
+        // Skip the helpers namespace
+        if (key === 'helpers') {
             return false;
         }
         

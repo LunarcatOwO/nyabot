@@ -2,9 +2,19 @@ exports.customId = 'help_nav';
 exports.description = 'Handle help command pagination navigation';
 
 exports.execute = async (interaction) => {
-    // Parse the button data - now includes userId and timestamp
+    const commandLoader = require('../../commands/load');
+    
+    // Check if user is authorized to use this interaction
+    if (!commandLoader.helpers.checkInteractionAuthorization(interaction, interaction.customId)) {
+        return interaction.reply({
+            content: '❌ Only the user who triggered this help command can navigate it.',
+            ephemeral: true
+        });
+    }
+    
+    // Parse the button data
     const parts = interaction.customId.split('_');
-    if (parts.length < 7) {
+    if (parts.length < 5) {
         return interaction.reply({
             content: '❌ Invalid button interaction format.',
             ephemeral: true
@@ -14,16 +24,6 @@ exports.execute = async (interaction) => {
     const action = parts[2];
     const currentPage = parseInt(parts[3]);
     const totalPages = parseInt(parts[4]);
-    const originalUserId = parts[5];
-    // parts[6] is timestamp for uniqueness
-    
-    // Check if the user who clicked is the same as who triggered the command
-    if (interaction.user.id !== originalUserId) {
-        return interaction.reply({
-            content: '❌ Only the user who triggered this help command can navigate it.',
-            ephemeral: true
-        });
-    }
     
     let newPage = currentPage;
     
@@ -58,8 +58,7 @@ exports.execute = async (interaction) => {
     
     try {
         // Get commands available to this user
-        const commandLoader = require('../../commands/load');
-        const commands = commandLoader.getAvailableCommands(interaction.member, interaction.guild, interaction.user.id);
+        const commands = commandLoader.helpers.getAvailableCommands(interaction.member, interaction.guild, interaction.user.id);
         
         if (commands.length === 0) {
             return interaction.reply({
@@ -69,30 +68,14 @@ exports.execute = async (interaction) => {
         }
 
         // Use helper to generate complete help interface
-        const helpHelper = require('../../helpers/helpEmbed');
-        const result = helpHelper.generateCompleteHelpInterface(commands, newPage, interaction.user.id);
+        const commandLoader = require('../../commands/load');
+        const result = commandLoader.helpers.embed.help.generateCompleteHelpInterface(commands, newPage, interaction.user.id);
         
         if (result.error) {
             return interaction.reply({
                 embeds: [result.embed],
                 ephemeral: true
             });
-        }
-
-        // Schedule cleanup after 1 minute
-        if (result.components && result.components.length > 0) {
-            setTimeout(async () => {
-                try {
-                    // Try to edit the message to remove components
-                    await interaction.editReply({
-                        embeds: [result.embed],
-                        components: [] // Remove all components
-                    });
-                } catch (error) {
-                    // Message might have been deleted or interaction expired
-                    console.log('Help cleanup: Message no longer accessible');
-                }
-            }, 60000); // 1 minute
         }
         
         // Update the message

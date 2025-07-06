@@ -2,6 +2,8 @@ exports.name = 'help';
 exports.description = 'Displays help information and lists all available commands.';
 exports.category = 'Utility';
 exports.ephemeral = true; // Make help responses ephemeral to avoid clutter
+exports.userLocked = true; // Lock interactions to the user who triggered the command
+exports.autoCleanup = 60000; // Auto-remove components after 60 seconds (60,000 ms)
 exports.options = [
     {
         name: 'page',
@@ -27,7 +29,7 @@ exports.execute = async (ctx) => {
     try {
         // Get commands available to this user
         const commandLoader = require('../../load');
-        const commands = commandLoader.getAvailableCommands(ctx.member, ctx.guild, ctx.user.id);
+        const commands = commandLoader.helpers.getAvailableCommands(ctx.member, ctx.guild, ctx.user.id);
         
         if (commands.length === 0) {
             return {
@@ -40,29 +42,10 @@ exports.execute = async (ctx) => {
         }
 
         // Use helper to generate complete help interface
-        const helpHelper = require('../../../helpers/helpEmbed');
-        const result = helpHelper.generateCompleteHelpInterface(commands, page, ctx.user.id);
+        const result = commandLoader.helpers.embed.help.generateCompleteHelpInterface(commands, page, ctx.user.id);
         
         if (result.error) {
             return { embeds: [result.embed] };
-        }
-
-        // Schedule cleanup after 1 minute
-        if (result.components && result.components.length > 0) {
-            setTimeout(async () => {
-                try {
-                    // Try to edit the message to remove components
-                    if (ctx.isSlashCommand && (ctx.raw.replied || ctx.raw.deferred)) {
-                        await ctx.editReply({
-                            embeds: [result.embed],
-                            components: [] // Remove all components
-                        });
-                    }
-                } catch (error) {
-                    // Message might have been deleted or interaction expired
-                    console.log('Help cleanup: Message no longer accessible');
-                }
-            }, 60000); // 1 minute
         }
 
         return { 

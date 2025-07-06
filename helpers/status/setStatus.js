@@ -62,7 +62,8 @@ function setRandomStatus(client) {
         { activity: 'to what you say', type: 'LISTENING' },
         { activity: 'with cozy', type: 'COMPETING' },
         { activity: 'your every move', type: 'WATCHING' },
-        { activity: 'The Banlist | n+ banlist', type: 'WATCHING' }
+        { activity: 'The Banlist | n+ banlist', type: 'WATCHING' },
+        { activity: 'the world burn', type: 'WATCHING' }
     ];
 
     const randomStatus = statusOptions[Math.floor(Math.random() * statusOptions.length)];

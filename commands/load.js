@@ -36,7 +36,40 @@ function hasPermission(member, requiredPermissions, userId = null) {
     });
 }
 
-function createContext(interaction, args = [], ephemeral = false) {
+/**
+ * Generate a custom ID for interactions with optional user locking
+ * @param {string} baseId - The base custom ID
+ * @param {string} userId - The user ID for locking (if userLocked is true)
+ * @param {boolean} userLocked - Whether to include user ID for locking
+ * @returns {string} - The generated custom ID
+ */
+function generateInteractionId(baseId, userId = null, userLocked = false) {
+    if (userLocked && userId) {
+        return `${baseId}_${userId}_${Date.now()}`;
+    }
+    return baseId;
+}
+
+/**
+ * Check if a user is authorized to use an interaction
+ * @param {Object} interaction - The Discord interaction
+ * @param {string} customId - The custom ID to check
+ * @returns {boolean} - Whether the user is authorized
+ */
+function checkInteractionAuthorization(interaction, customId) {
+    const parts = customId.split('_');
+    
+    // If the custom ID has a user ID (user-locked interaction)
+    if (parts.length >= 3 && parts[parts.length - 2].match(/^\d+$/)) {
+        const authorizedUserId = parts[parts.length - 2];
+        return interaction.user.id === authorizedUserId;
+    }
+    
+    // If no user ID in custom ID, anyone can use it
+    return true;
+}
+
+function createContext(interaction, args = [], ephemeral = false, userLocked = false, autoCleanup = null) {
     // Check if this is a slash command interaction
     const isSlashCommand = interaction && typeof interaction.reply === 'function' && interaction.commandName;
     // Check if this is a message
@@ -59,6 +92,8 @@ function createContext(interaction, args = [], ephemeral = false) {
         options: isSlashCommand ? interaction.options : null, // For slash commands
         isSlashCommand,
         isMessage,
+        userLocked, // Whether interactions should be locked to this user
+        autoCleanup, // Auto-cleanup timeout in milliseconds
         
         // Unified response methods
         reply: async (content) => {
@@ -105,7 +140,11 @@ function wrapCommand(cmd) {
     return {
         ...cmd,
         execute: async (interaction, args = []) => {
-            const ctx = createContext(interaction, args, cmd.ephemeral || false);
+            // Extract flags for user locking and auto cleanup
+            const userLocked = cmd.userLocked || false;
+            const autoCleanup = cmd.autoCleanup || null; // Time in milliseconds, or null for no cleanup
+            
+            const ctx = createContext(interaction, args, cmd.ephemeral || false, userLocked, autoCleanup);
             
             if (!ctx) {
                 console.error('Failed to create context for interaction:', interaction);
@@ -191,14 +230,34 @@ function wrapCommand(cmd) {
                             // Check if subcommand has its own ephemeral setting, otherwise inherit from parent
                             const subEphemeral = subcommand.hasOwnProperty('ephemeral') ? subcommand.ephemeral : cmd.ephemeral;
                             
-                            // If subcommand has different ephemeral setting, create new context
-                            const subCtx = subEphemeral !== cmd.ephemeral 
-                                ? createContext(interaction, ctx.args, subEphemeral || false)
+                            // Check for subcommand-specific flags, otherwise inherit from parent
+                            const subUserLocked = subcommand.hasOwnProperty('userLocked') ? subcommand.userLocked : cmd.userLocked || false;
+                            const subAutoCleanup = subcommand.hasOwnProperty('autoCleanup') ? subcommand.autoCleanup : cmd.autoCleanup || null;
+                            
+                            // If subcommand has different settings, create new context
+                            const subCtx = (subEphemeral !== cmd.ephemeral || subUserLocked !== userLocked || subAutoCleanup !== autoCleanup)
+                                ? createContext(interaction, ctx.args, subEphemeral || false, subUserLocked, subAutoCleanup)
                                 : ctx;
                                 
                             const result = await subcommand.execute(subCtx);
                             if (result) {
                                 await subCtx.reply(result);
+                                
+                                // Schedule auto-cleanup if enabled and result has components
+                                if (subCtx.autoCleanup && result.components && result.components.length > 0) {
+                                    setTimeout(async () => {
+                                        try {
+                                            if (subCtx.isSlashCommand && (interaction.replied || interaction.deferred)) {
+                                                await interaction.editReply({
+                                                    ...result,
+                                                    components: [] // Remove all components
+                                                });
+                                            }
+                                        } catch (error) {
+                                            console.log('Auto-cleanup: Message no longer accessible');
+                                        }
+                                    }, subCtx.autoCleanup);
+                                }
                             }
                             return;
                         }
@@ -210,6 +269,22 @@ function wrapCommand(cmd) {
                     const result = await originalExecute(ctx);
                     if (result) {
                         await ctx.reply(result);
+                        
+                        // Schedule auto-cleanup if enabled and result has components
+                        if (ctx.autoCleanup && result.components && result.components.length > 0) {
+                            setTimeout(async () => {
+                                try {
+                                    if (ctx.isSlashCommand && (interaction.replied || interaction.deferred)) {
+                                        await interaction.editReply({
+                                            ...result,
+                                            components: [] // Remove all components
+                                        });
+                                    }
+                                } catch (error) {
+                                    console.log('Auto-cleanup: Message no longer accessible');
+                                }
+                            }, ctx.autoCleanup);
+                        }
                     }
                 }
             } catch (error) {
@@ -361,5 +436,13 @@ function getAvailableCommands(member, guild, userId = null) {
     return availableCommands;
 }
 
+// Load all helpers using the helpers loader
+const allHelpers = require('../helpers/load');
+
 module.exports = load;
-module.exports.getAvailableCommands = getAvailableCommands;
+module.exports.helpers = {
+    getAvailableCommands,
+    generateInteractionId,
+    checkInteractionAuthorization,
+    ...allHelpers
+};
