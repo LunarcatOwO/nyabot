@@ -1,11 +1,10 @@
-exports.description = 'Copyright and licensing information';
+exports.description = 'License information';
 
 exports.execute = async (ctx) => {
     const { ActionRowBuilder, StringSelectMenuBuilder } = require('discord.js');
     
     const embed = {
-        title: 'About Me - Copyright',
-        description: 'Copyright and licensing information for NyaBot.',
+        title: 'About Me - License',
         fields: [
             {
                 name: 'License',
@@ -18,7 +17,7 @@ exports.execute = async (ctx) => {
                 inline: true
             },
             {
-                name: 'Copyright Year',
+                name: 'Year',
                 value: '© 2025',
                 inline: true
             },
@@ -39,7 +38,7 @@ exports.execute = async (ctx) => {
             url: ctx.raw.client.user.displayAvatarURL({ dynamic: true, size: 256 })
         },
         footer: {
-            text: 'NyaBot • Copyright Information'
+            text: 'NyaBot • License Information'
         }
     };
 
@@ -58,9 +57,9 @@ exports.execute = async (ctx) => {
                             value: 'general'
                         },
                         {
-                            label: 'Copyright',
-                            description: 'Copyright and licensing information',
-                            value: 'copyright',
+                            label: 'License',
+                            description: 'Licensing information',
+                            value: 'license',
                             default: true
                         },
                         {

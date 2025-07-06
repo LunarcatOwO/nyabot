@@ -54,9 +54,9 @@ exports.execute = async (ctx) => {
                             value: 'general'
                         },
                         {
-                            label: 'Copyright',
-                            description: 'Copyright and licensing information',
-                            value: 'copyright'
+                            label: 'License',
+                            description: 'Licensing information',
+                            value: 'license'
                         },
                         {
                             label: 'Invite Bot',

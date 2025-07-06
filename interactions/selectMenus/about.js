@@ -25,8 +25,8 @@ exports.execute = async (interaction) => {
             case 'general':
                 subcommandPath = '../../commands/modules/about/general/run.js';
                 break;
-            case 'copyright':
-                subcommandPath = '../../commands/modules/about/copyright/run.js';
+            case 'license':
+                subcommandPath = '../../commands/modules/about/license/run.js';
                 break;
             case 'invite':
                 subcommandPath = '../../commands/modules/about/invite/run.js';
