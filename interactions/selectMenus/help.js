@@ -26,11 +26,10 @@ exports.execute = async (interaction) => {
         }
 
         // Use helper to generate complete help interface
-        const commandLoader = require('../../commands/load');
         const result = commandLoader.helpers.embed.help.generateCompleteHelpInterface(commands, selectedPage, interaction.user.id);
         
         if (result.error) {
-            return interaction.reply({
+            return await interaction.reply({
                 embeds: [result.embed],
                 ephemeral: true
             });

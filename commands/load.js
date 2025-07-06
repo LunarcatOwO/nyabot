@@ -51,6 +51,47 @@ function generateInteractionId(baseId, userId = null, userLocked = false) {
 }
 
 /**
+ * Schedule auto-cleanup for an interaction response
+ * @param {Object} interactionOrMessage - The Discord interaction or message
+ * @param {number} timeoutMs - Timeout in milliseconds
+ * @param {string} context - Context for logging (e.g., command name)
+ * @param {Object} originalResponse - The original response message (for text commands)
+ */
+function scheduleAutoCleanup(interactionOrMessage, timeoutMs, context = 'interaction', originalResponse = null) {
+    if (!timeoutMs) return;
+    
+    const isSlashCommand = interactionOrMessage && typeof interactionOrMessage.reply === 'function' && interactionOrMessage.commandName;
+    const isMessage = interactionOrMessage && interactionOrMessage.author && interactionOrMessage.channel && typeof interactionOrMessage.channel.send === 'function';
+    
+    setTimeout(async () => {
+        try {
+            if (isSlashCommand && (interactionOrMessage.replied || interactionOrMessage.deferred)) {
+                // Handle slash command interactions
+                const currentMessage = await interactionOrMessage.fetchReply();
+                
+                await interactionOrMessage.editReply({
+                    embeds: currentMessage.embeds,
+                    content: currentMessage.content,
+                    components: [] // Remove all components while keeping embeds and content
+                });
+                
+            } else if (isMessage && originalResponse) {
+                // Handle text command responses
+                if (originalResponse.components && originalResponse.components.length > 0) {
+                    await originalResponse.edit({
+                        embeds: originalResponse.embeds,
+                        content: originalResponse.content,
+                        components: [] // Remove all components
+                    });
+                }
+            }
+        } catch (error) {
+            // Silently handle cleanup failures (message may have been deleted, etc.)
+        }
+    }, timeoutMs);
+}
+
+/**
  * Check if a user is authorized to use an interaction
  * @param {Object} interaction - The Discord interaction
  * @param {string} customId - The custom ID to check
@@ -241,22 +282,11 @@ function wrapCommand(cmd) {
                                 
                             const result = await subcommand.execute(subCtx);
                             if (result) {
-                                await subCtx.reply(result);
+                                const response = await subCtx.reply(result);
                                 
                                 // Schedule auto-cleanup if enabled and result has components
                                 if (subCtx.autoCleanup && result.components && result.components.length > 0) {
-                                    setTimeout(async () => {
-                                        try {
-                                            if (subCtx.isSlashCommand && (interaction.replied || interaction.deferred)) {
-                                                await interaction.editReply({
-                                                    ...result,
-                                                    components: [] // Remove all components
-                                                });
-                                            }
-                                        } catch (error) {
-                                            console.log('Auto-cleanup: Message no longer accessible');
-                                        }
-                                    }, subCtx.autoCleanup);
+                                    scheduleAutoCleanup(interaction, subCtx.autoCleanup, `subcommand '${cmd.name} ${subcommandName}'`, response);
                                 }
                             }
                             return;
@@ -268,22 +298,11 @@ function wrapCommand(cmd) {
                 if (originalExecute) {
                     const result = await originalExecute(ctx);
                     if (result) {
-                        await ctx.reply(result);
+                        const response = await ctx.reply(result);
                         
                         // Schedule auto-cleanup if enabled and result has components
                         if (ctx.autoCleanup && result.components && result.components.length > 0) {
-                            setTimeout(async () => {
-                                try {
-                                    if (ctx.isSlashCommand && (interaction.replied || interaction.deferred)) {
-                                        await interaction.editReply({
-                                            ...result,
-                                            components: [] // Remove all components
-                                        });
-                                    }
-                                } catch (error) {
-                                    console.log('Auto-cleanup: Message no longer accessible');
-                                }
-                            }, ctx.autoCleanup);
+                            scheduleAutoCleanup(interaction, ctx.autoCleanup, `command '${cmd.name}'`, response);
                         }
                     }
                 }
@@ -444,5 +463,6 @@ module.exports.helpers = {
     getAvailableCommands,
     generateInteractionId,
     checkInteractionAuthorization,
+    scheduleAutoCleanup,
     ...allHelpers
 };

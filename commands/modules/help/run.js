@@ -3,7 +3,7 @@ exports.description = 'Displays help information and lists all available command
 exports.category = 'Utility';
 exports.ephemeral = true; // Make help responses ephemeral to avoid clutter
 exports.userLocked = true; // Lock interactions to the user who triggered the command
-exports.autoCleanup = 60000; // Auto-remove components after 60 seconds (60,000 ms)
+exports.autoCleanup = 60000; // Auto-remove components after 60 seconds (1 minute)
 exports.options = [
     {
         name: 'page',

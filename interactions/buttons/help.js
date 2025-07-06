@@ -2,6 +2,7 @@ exports.customId = 'help_nav';
 exports.description = 'Handle help command pagination navigation';
 
 exports.execute = async (interaction) => {
+    // Lazy require to avoid circular dependency during initialization
     const commandLoader = require('../../commands/load');
     
     // Check if user is authorized to use this interaction
@@ -68,11 +69,10 @@ exports.execute = async (interaction) => {
         }
 
         // Use helper to generate complete help interface
-        const commandLoader = require('../../commands/load');
         const result = commandLoader.helpers.embed.help.generateCompleteHelpInterface(commands, newPage, interaction.user.id);
         
         if (result.error) {
-            return interaction.reply({
+            return await interaction.reply({
                 embeds: [result.embed],
                 ephemeral: true
             });
