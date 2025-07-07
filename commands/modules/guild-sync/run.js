@@ -91,7 +91,7 @@ exports.execute = async (ctx) => {
                         color: statusColor,
                         timestamp: new Date().toISOString(),
                         footer: {
-                            text: 'Guild data is automatically synced every 6 hours'
+                            text: 'Guild data is automatically synced every hour'
                         }
                     }]
                 };

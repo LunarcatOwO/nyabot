@@ -160,18 +160,24 @@ async function getGuildSyncStats(client) {
     const dbGuildsResult = await readFromDB('SELECT COUNT(*) as count FROM guilds');
     const dbGuilds = dbGuildsResult[0]?.count || 0;
     
-    // Get outdated guilds (guilds that haven't been updated in the last 24 hours)
+    // Get outdated guilds (guilds that haven't been updated in the last 6 hours)
+    // This matches the automatic sync interval mentioned in the footer
     const outdatedGuildsResult = await readFromDB(`
       SELECT COUNT(*) as count FROM guilds 
-      WHERE updated_at < DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 24 HOUR)
+      WHERE updated_at < DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 6 HOUR)
     `);
     const outdatedGuilds = outdatedGuildsResult[0]?.count || 0;
+    
+    // Sync is needed if:
+    // 1. Number of current guilds doesn't match database guilds (guild join/leave)
+    // 2. More than 50% of guilds are outdated (bulk outdated situation)
+    const outdatedThreshold = Math.max(1, Math.floor(currentGuilds * 0.5));
     
     return {
       currentGuilds,
       dbGuilds,
       outdatedGuilds,
-      syncNeeded: currentGuilds !== dbGuilds || outdatedGuilds > 0
+      syncNeeded: currentGuilds !== dbGuilds || outdatedGuilds >= outdatedThreshold
     };
   } catch (error) {
     console.error('❌ Error getting guild sync stats:', error.message);
