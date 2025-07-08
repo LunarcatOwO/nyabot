@@ -173,19 +173,6 @@ async function getGuildSyncStats(client) {
     // 2. There are outdated guilds (but only if it's more than a few)
     const significantOutdated = outdatedGuilds > Math.max(1, Math.floor(currentGuilds * 0.1)); // 10% threshold
     
-    // Debug logging
-    console.log('🔍 Guild Sync Stats Debug:', {
-      currentGuilds,
-      dbGuilds,
-      outdatedGuilds,
-      currentGuildsType: typeof currentGuilds,
-      dbGuildsType: typeof dbGuilds,
-      outdatedGuildsType: typeof outdatedGuilds,
-      countMismatch: currentGuilds !== dbGuilds,
-      significantOutdated,
-      syncNeeded: currentGuilds !== dbGuilds || significantOutdated
-    });
-    
     return {
       currentGuilds,
       dbGuilds,
