@@ -9,10 +9,6 @@ exports.autoCleanup = 60000; // Auto-remove components after 60 seconds
 exports.execute = async (ctx) => {
     // This will redirect to the general subcommand by default
     return {
-        embeds: [{
-            title: '🤖 About NyaBot',
-            description: 'Use the dropdown below or subcommands to view different information sections.',
-            color: 0x5865F2
-        }]
+        content: 'Please specify a subcommand. Use `/about general` to get general information about NyaBot. Or if you did specify a subcommand, this might be a error, report to LunarcatOwO.'
     };
 };
