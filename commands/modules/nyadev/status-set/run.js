@@ -86,6 +86,11 @@ exports.execute = async (ctx) => {
                             name: 'Updated by',
                             value: ctx.user.tag,
                             inline: true
+                        },
+                        {
+                            name: 'Auto Rotation',
+                            value: 'Disabled (manual status set)',
+                            inline: true
                         }
                     ],
                     color: 0x00ff00,

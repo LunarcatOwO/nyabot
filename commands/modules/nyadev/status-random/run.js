@@ -20,9 +20,14 @@ exports.execute = async (ctx) => {
                             inline: true
                         },
                         {
-                            name: 'Tip',
-                            value: 'Use `/nyadev status-info` to see the current status',
+                            name: 'Auto Rotation',
+                            value: 'Disabled (manual status set)',
                             inline: true
+                        },
+                        {
+                            name: 'Tip',
+                            value: 'Use `/nyadev status-info` to see the current status\nUse `/nyadev status-rotation enable` to restart auto-rotation',
+                            inline: false
                         }
                     ],
                     color: 0xff9900,

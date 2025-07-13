@@ -25,6 +25,20 @@ exports.execute = async (ctx) => {
     
     const activity = presence.activities.length > 0 ? presence.activities[0] : null;
     
+    // Get auto-rotation status
+    const helpers = require('../../../../helpers/load.js');
+    let rotationInfo = 'Unknown';
+    if (helpers.status && helpers.status.setStatus && helpers.status.setStatus.getRotationStatus) {
+        const rotationStatus = helpers.status.setStatus.getRotationStatus();
+        if (rotationStatus.active) {
+            rotationInfo = '🔄 Active';
+        } else if (rotationStatus.enabled) {
+            rotationInfo = '⏸️ Enabled (Paused)';
+        } else {
+            rotationInfo = '⏹️ Disabled';
+        }
+    }
+    
     return {
         embeds: [{
             title: '🤖 Current Bot Status',
@@ -40,6 +54,11 @@ exports.execute = async (ctx) => {
                     inline: true
                 },
                 {
+                    name: 'Auto Rotation',
+                    value: rotationInfo,
+                    inline: true
+                },
+                {
                     name: 'Bot Info',
                     value: `**Tag:** ${client.user.tag}\n**ID:** ${client.user.id}`,
                     inline: false
@@ -49,7 +68,10 @@ exports.execute = async (ctx) => {
                 url: client.user.displayAvatarURL({ dynamic: true, size: 256 })
             },
             color: 0x5865F2,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            footer: {
+                text: 'Use /nyadev status-rotation to manage auto rotation'
+            }
         }]
     };
 };
