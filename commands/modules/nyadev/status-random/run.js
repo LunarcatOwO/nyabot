@@ -1,14 +1,36 @@
 exports.description = 'Set a random bot status';
 exports.permissions = ['BotOwner'];
+exports.options = [
+    {
+        name: 'auto-rotation',
+        type: 3, // STRING with choices
+        description: 'Enable auto rotation after setting random status',
+        required: false,
+        choices: [
+            { name: 'True', value: 'true' },
+            { name: 'False', value: 'false' }
+        ]
+    }
+];
 
 exports.execute = async (ctx) => {
+    // Get the auto-rotation option (defaults to false)
+    const autoRotationOption = ctx.isSlashCommand ? ctx.options.getString('auto-rotation') : null;
+    const enableAutoRotation = autoRotationOption === 'true';
+    
     // Load helpers to access status functions
     const helpers = require('../../../../helpers/load.js');
     
     if (helpers.status && helpers.status.setStatus) {
-        const success = helpers.status.setStatus.setRandomStatus(ctx.raw.client);
+        const success = helpers.status.setStatus.setRandomStatus(ctx.raw.client, false);
         
         if (success) {
+            // Handle auto-rotation based on the option
+            if (enableAutoRotation) {
+                // Enable auto rotation with default interval (30 seconds)
+                helpers.status.setStatus.enableAutoRotation(30);
+            }
+            
             return {
                 embeds: [{
                     title: '🎲 Random Status Set',
@@ -21,13 +43,8 @@ exports.execute = async (ctx) => {
                         },
                         {
                             name: 'Auto Rotation',
-                            value: 'Disabled (manual status set)',
+                            value: enableAutoRotation ? 'Enabled (30s interval)' : 'Disabled',
                             inline: true
-                        },
-                        {
-                            name: 'Tip',
-                            value: 'Use `/nyadev status-info` to see the current status\nUse `/nyadev status-rotation enable` to restart auto-rotation',
-                            inline: false
                         }
                     ],
                     color: 0xff9900,
