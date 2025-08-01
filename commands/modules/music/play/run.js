@@ -49,19 +49,21 @@ exports.execute = async (ctx) => {
         // Search for songs
         let searchResults = [];
         
-        // Check if it's a direct URL
+        // Check if it's a direct URL with better detection
         if (query.includes('youtube.com') || query.includes('youtu.be')) {
             // Direct YouTube URL
             const youtubeSearcher = require('../../../../helpers/music/youtube');
-            const video = await youtubeSearcher.getVideo(query);
+            const video = await youtubeSearcher.getVideo(query.trim());
             if (video) {
                 searchResults = [video];
+            } else {
+                return { content: '❌ Could not find that YouTube video. Please check the URL.' };
             }
         } else if (query.includes('soundcloud.com')) {
             // Direct SoundCloud URL - add to queue directly
             const song = {
                 title: 'SoundCloud Track', // We'll get the real title when we fetch stream info
-                url: query,
+                url: query.trim(),
                 duration: 'Unknown',
                 thumbnail: null,
                 source: 'soundcloud',
@@ -78,7 +80,7 @@ exports.execute = async (ctx) => {
             }
         } else if (musicManager.isSpotifyUrl(query)) {
             // Direct Spotify URL
-            const spotifyTrack = await musicManager.getSpotifyTrack(query);
+            const spotifyTrack = await musicManager.getSpotifyTrack(query.trim());
             if (spotifyTrack) {
                 const position = await musicManager.addToQueue(ctx.guild.id, spotifyTrack);
                 
@@ -146,6 +148,10 @@ exports.execute = async (ctx) => {
 };
 
 async function showSearchResults(ctx, results) {
+    if (results.length === 0) {
+        return { content: '❌ No songs found for your search!' };
+    }
+
     const embed = new EmbedBuilder()
         .setColor('#FF6B9D')
         .setTitle('🔍 Search Results')
