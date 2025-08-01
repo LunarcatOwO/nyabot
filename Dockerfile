@@ -3,8 +3,9 @@ FROM node:current-alpine
 # Install dependencies for music functionality and build tools
 RUN apk add --no-cache python3 py3-pip ffmpeg git build-base
 
-# Install SpotDL separately with longer timeout and better error handling
-RUN pip3 install --break-system-packages --upgrade --timeout 300 spotdl || \
+# Install SpotDL and YT-DLP separately with longer timeout and better error handling
+RUN pip3 install --break-system-packages --upgrade --timeout 300 yt-dlp && \
+    pip3 install --break-system-packages --upgrade --timeout 300 spotdl || \
     (echo "SpotDL installation failed, retrying..." && sleep 5 && pip3 install --break-system-packages --upgrade --timeout 300 spotdl)
 
 # Clean up build dependencies and create temp directory
