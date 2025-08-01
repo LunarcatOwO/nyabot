@@ -84,7 +84,7 @@ class StreamProvider {
                 '--no-warnings',
                 '--no-check-certificates',
                 '--ignore-errors',
-                url
+                song.youtubeUrl || song.url
             ];
             
             const fallbackUrl = await this.ytDlp.execPromise(fallbackArgs);
@@ -177,7 +177,7 @@ class StreamProvider {
             const { promisify } = require('util');
             const execAsync = promisify(exec);
             
-            const youtubeDlResult = await execAsync(`youtube-dl --get-url --format bestaudio "${url}"`);
+            const youtubeDlResult = await execAsync(`youtube-dl --get-url --format bestaudio "${song.youtubeUrl || song.url}"`);
             if (youtubeDlResult.stdout && youtubeDlResult.stdout.trim()) {
                 console.log('youtube-dl fallback successful');
                 return youtubeDlResult.stdout.trim();
@@ -210,7 +210,7 @@ class StreamProvider {
 
         switch (attempt) {
             case 1:
-                // First attempt: Try with cookies, fallback gracefully if they fail
+                // First attempt: Best quality with user agent, try cookies if available
                 formatArgs = ['--format', 'bestaudio[ext=m4a]/bestaudio[ext=mp3]/bestaudio/best[height<=480]/best'];
                 extraArgs = [
                     '--extract-audio',
@@ -221,16 +221,9 @@ class StreamProvider {
                     '--sleep-interval', '1',
                     '--max-sleep-interval', '3'
                 ];
-                
-                // Try to add cookies, but don't fail if they're not available
-                try {
-                    extraArgs.push('--cookies-from-browser', 'chrome');
-                } catch (cookieError) {
-                    console.log('Chrome cookies not available, continuing without');
-                }
                 break;
             case 2:
-                // Second attempt: Android client without cookies + audio-only
+                // Second attempt: Android client + audio-only
                 formatArgs = ['--format', 'bestaudio[filesize<50M]/worstaudio'];
                 extraArgs = [
                     '--extract-audio',
