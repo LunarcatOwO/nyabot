@@ -3,7 +3,8 @@ FROM node:current-alpine
 # Install dependencies for music functionality and build tools
 RUN apk add --no-cache python3 py3-pip ffmpeg git build-base && \
     pip3 install --break-system-packages --upgrade spotdl && \
-    apk del build-base
+    apk del build-base && \
+    mkdir -p /tmp/nyabot-music
 
 WORKDIR /app
 
