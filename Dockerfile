@@ -1,7 +1,7 @@
-FROM node:23-alpine
+FROM node:current-alpine
 
 # Install dependencies for music functionality and build tools
-RUN apk add --no-cache python3 py3-pip ffmpeg git curl wget build-base && \
+RUN apk add --no-cache python3 py3-pip ffmpeg git build-base && \
     pip3 install --break-system-packages --upgrade spotdl && \
     apk del build-base
 
