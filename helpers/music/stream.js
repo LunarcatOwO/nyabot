@@ -29,7 +29,7 @@ class StreamProvider {
                     timeout: 30000 // 30 second timeout
                 });
                 
-                const streamUrl = stdout.trim();
+                const streamUrl = this.extractUrlFromOutput(stdout);
                 if (streamUrl && streamUrl.startsWith('http')) {
                     return streamUrl;
                 }
@@ -50,7 +50,7 @@ class StreamProvider {
                     timeout: 30000 // 30 second timeout
                 });
                 
-                const streamUrl = stdout.trim();
+                const streamUrl = this.extractUrlFromOutput(stdout);
                 if (streamUrl && streamUrl.startsWith('http')) {
                     return streamUrl;
                 }
@@ -59,6 +59,26 @@ class StreamProvider {
             throw new Error('No stream URL found for Spotify track');
         } catch (error) {
             console.error('Failed to get Spotify stream:', error.message);
+            return null;
+        }
+    }
+
+    extractUrlFromOutput(output) {
+        try {
+            // Split by lines and find URLs
+            const lines = output.split('\n');
+            
+            for (const line of lines) {
+                const trimmed = line.trim();
+                // Look for HTTP/HTTPS URLs
+                if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+                    return trimmed;
+                }
+            }
+            
+            return null;
+        } catch (error) {
+            console.error('Error extracting URL:', error);
             return null;
         }
     }

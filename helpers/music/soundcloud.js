@@ -18,7 +18,13 @@ class SoundCloudSearcher {
                 return [];
             }
 
-            const results = JSON.parse(stdout);
+            // Filter out non-JSON lines (like "Processing..." messages)
+            const cleanOutput = this.extractJsonFromOutput(stdout);
+            if (!cleanOutput) {
+                return [];
+            }
+
+            const results = JSON.parse(cleanOutput);
             
             // Handle both single result and array of results
             const tracks = Array.isArray(results) ? results : [results];
@@ -42,6 +48,59 @@ class SoundCloudSearcher {
         }
     }
 
+    extractJsonFromOutput(output) {
+        try {
+            // Split by lines and find the JSON content
+            const lines = output.split('\n');
+            
+            // Look for lines that start with { or [ (JSON)
+            for (const line of lines) {
+                const trimmed = line.trim();
+                if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+                    // Try to parse this line as JSON
+                    try {
+                        JSON.parse(trimmed);
+                        return trimmed;
+                    } catch (e) {
+                        // Not valid JSON, continue
+                        continue;
+                    }
+                }
+            }
+            
+            // If no single line works, try to find JSON blocks
+            let jsonStart = -1;
+            let jsonEnd = -1;
+            
+            for (let i = 0; i < lines.length; i++) {
+                const trimmed = lines[i].trim();
+                if ((trimmed.startsWith('{') || trimmed.startsWith('[')) && jsonStart === -1) {
+                    jsonStart = i;
+                }
+                if ((trimmed.endsWith('}') || trimmed.endsWith(']')) && jsonStart !== -1) {
+                    jsonEnd = i;
+                    break;
+                }
+            }
+            
+            if (jsonStart !== -1 && jsonEnd !== -1) {
+                const jsonLines = lines.slice(jsonStart, jsonEnd + 1);
+                const jsonString = jsonLines.join('\n');
+                try {
+                    JSON.parse(jsonString);
+                    return jsonString;
+                } catch (e) {
+                    // Not valid JSON
+                }
+            }
+            
+            return null;
+        } catch (error) {
+            console.error('Error extracting JSON:', error);
+            return null;
+        }
+    }
+
     async getStreamUrl(trackUrl) {
         try {
             // Use SpotDL to get the stream URL for a specific track
@@ -49,10 +108,30 @@ class SoundCloudSearcher {
                 timeout: 30000 // 30 second timeout
             });
             
-            const streamUrl = stdout.trim();
+            const streamUrl = this.extractUrlFromOutput(stdout);
             return streamUrl || null;
         } catch (error) {
             console.error('SoundCloud stream URL error:', error);
+            return null;
+        }
+    }
+
+    extractUrlFromOutput(output) {
+        try {
+            // Split by lines and find URLs
+            const lines = output.split('\n');
+            
+            for (const line of lines) {
+                const trimmed = line.trim();
+                // Look for HTTP/HTTPS URLs
+                if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+                    return trimmed;
+                }
+            }
+            
+            return null;
+        } catch (error) {
+            console.error('Error extracting URL:', error);
             return null;
         }
     }
