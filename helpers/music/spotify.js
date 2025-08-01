@@ -106,6 +106,8 @@ class SpotifySearcher {
             // Find the start and end of the JSON array/object
             let jsonStart = -1;
             let jsonEnd = -1;
+            let bracketCount = 0;
+            let inJson = false;
             
             for (let i = 0; i < lines.length; i++) {
                 const trimmed = lines[i].trim();
@@ -113,14 +115,28 @@ class SpotifySearcher {
                 // Look for the start of JSON ([ or {)
                 if ((trimmed === '[' || trimmed === '{') && jsonStart === -1) {
                     jsonStart = i;
+                    inJson = true;
+                    bracketCount = 1;
                     console.log(`JSON starts at line ${i}: "${trimmed}"`);
+                    continue;
                 }
                 
-                // Look for the end of JSON (] or })
-                if ((trimmed === ']' || trimmed === '}') && jsonStart !== -1) {
-                    jsonEnd = i;
-                    console.log(`JSON ends at line ${i}: "${trimmed}"`);
-                    break;
+                if (inJson) {
+                    // Count opening and closing brackets to find the true end
+                    for (const char of trimmed) {
+                        if (char === '[' || char === '{') {
+                            bracketCount++;
+                        } else if (char === ']' || char === '}') {
+                            bracketCount--;
+                        }
+                    }
+                    
+                    // When bracket count reaches 0, we've found the end
+                    if (bracketCount === 0) {
+                        jsonEnd = i;
+                        console.log(`JSON ends at line ${i}: "${trimmed}"`);
+                        break;
+                    }
                 }
             }
             
@@ -130,10 +146,11 @@ class SpotifySearcher {
                 const jsonString = jsonLines.join('\n');
                 
                 console.log(`Extracted JSON string (${jsonString.length} chars):`, jsonString.substring(0, 200) + '...');
+                console.log(`Last 100 chars:`, jsonString.substring(jsonString.length - 100));
                 
                 try {
                     // Validate the JSON
-                    JSON.parse(jsonString);
+                    const parsed = JSON.parse(jsonString);
                     console.log('Successfully validated JSON');
                     return jsonString;
                 } catch (parseError) {
@@ -144,12 +161,14 @@ class SpotifySearcher {
                         .replace(/,\s*}/g, '}')  // Remove trailing commas before }
                         .replace(/,\s*]/g, ']'); // Remove trailing commas before ]
                     
+                    console.log('Trying cleaned JSON...');
                     try {
-                        JSON.parse(cleanedJson);
+                        const cleanedParsed = JSON.parse(cleanedJson);
                         console.log('Successfully validated cleaned JSON');
                         return cleanedJson;
                     } catch (cleanError) {
                         console.log('Cleaned JSON also failed:', cleanError.message);
+                        console.log('Cleaned JSON sample:', cleanedJson.substring(cleanedJson.length - 200));
                     }
                 }
             }
