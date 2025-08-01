@@ -111,17 +111,24 @@ exports.execute = async (ctx) => {
                 return { content: '❌ Could not fetch Spotify track information!' };
             }
         } else {
-            // Search SoundCloud and Spotify only (no YouTube)
-            searchResults = await musicManager.searchSoundCloud(query);
+            // Search Spotify first (SpotDL works better with Spotify), then SoundCloud
+            searchResults = await musicManager.searchSpotify(query);
             
-            // If no SoundCloud results, try Spotify
+            // If no Spotify results, try SoundCloud
             if (searchResults.length === 0) {
-                searchResults = await musicManager.searchSpotify(query);
+                searchResults = await musicManager.searchSoundCloud(query);
             }
         }
 
         if (searchResults.length === 0) {
-            return { content: '❌ No songs found for your search!' };
+            return { 
+                content: '❌ **Search functionality is currently limited.**\n\n' +
+                        '**To play music, please use direct links:**\n' +
+                        '• Spotify track links (e.g., `https://open.spotify.com/track/...`)\n' +
+                        '• SoundCloud track links (e.g., `https://soundcloud.com/...`)\n\n' +
+                        '**Example:** `/play https://open.spotify.com/track/4iV5W9uYEdYUVa79Axb7Rh`\n\n' +
+                        '*Search by song name will be available soon with proper API integration.*'
+            };
         }
 
         // If only one result or direct URL, add it immediately
@@ -161,7 +168,14 @@ exports.execute = async (ctx) => {
 
 async function showSearchResults(ctx, results) {
     if (results.length === 0) {
-        return { content: '❌ No songs found for your search!' };
+        return { 
+            content: '❌ **Search functionality is currently limited.**\n\n' +
+                    '**To play music, please use direct links:**\n' +
+                    '• Spotify track links (e.g., `https://open.spotify.com/track/...`)\n' +
+                    '• SoundCloud track links (e.g., `https://soundcloud.com/...`)\n\n' +
+                    '**Example:** `/play https://open.spotify.com/track/4iV5W9uYEdYUVa79Axb7Rh`\n\n' +
+                    '*Search by song name will be available soon with proper API integration.*'
+        };
     }
 
     const embed = new EmbedBuilder()

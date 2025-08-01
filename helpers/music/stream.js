@@ -25,7 +25,7 @@ class StreamProvider {
         try {
             if (song.url && (song.url.includes('soundcloud.com') || song.url.includes('open.spotify.com'))) {
                 // Try SpotDL to get the streaming URL
-                const { stdout } = await execAsync(`spotdl url "${song.url}" --audio soundcloud`, {
+                const { stdout } = await execAsync(`spotdl url "${song.url}"`, {
                     timeout: 30000 // 30 second timeout
                 });
                 

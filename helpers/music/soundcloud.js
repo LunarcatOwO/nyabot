@@ -6,43 +6,27 @@ class SoundCloudSearcher {
 
     async search(query, limit = 5) {
         try {
-            // Enhance query for music content on SoundCloud
-            const musicQuery = this.enhanceQueryForMusic(query);
+            // For now, return empty array since SpotDL save is not designed for searching
+            // SpotDL is designed to work with Spotify URLs, not search queries
+            console.log('SoundCloud search: SpotDL save operation is not suitable for search queries');
+            console.log('Need to implement proper SoundCloud API or alternative search method');
+            return [];
             
-            // Use SpotDL to get metadata from SoundCloud
-            const { stdout } = await execAsync(`spotdl save "${musicQuery}" --save-file - --audio soundcloud --dont-filter-results --max-retries 1`, {
+            /* 
+            // This approach doesn't work for search - save is for known URLs
+            const musicQuery = this.enhanceQueryForMusic(query);
+            const command = `spotdl save "${musicQuery}" --save-file -`;
+            console.log(`SoundCloud search command: ${command}`);
+            
+            const { stdout, stderr } = await execAsync(command, {
                 timeout: 30000 // 30 second timeout
             });
             
-            if (!stdout || stdout.trim() === '') {
-                return [];
-            }
-
-            // Filter out non-JSON lines (like "Processing..." messages)
-            const cleanOutput = this.extractJsonFromOutput(stdout);
-            if (!cleanOutput) {
-                return [];
-            }
-
-            const results = JSON.parse(cleanOutput);
-            
-            // Handle both single result and array of results
-            const tracks = Array.isArray(results) ? results : [results];
-            
-            // Filter and prioritize music content
-            const musicResults = this.filterMusicContent(tracks);
-
-            return musicResults.slice(0, limit).map(track => ({
-                title: track.name || track.title || 'Unknown Title',
-                url: track.url || track.external_urls?.spotify || track.external_urls?.soundcloud,
-                duration: this.formatDuration((track.duration_ms || track.duration * 1000 || 0)),
-                thumbnail: track.album?.images?.[0]?.url || track.cover_url,
-                source: 'soundcloud',
-                id: track.id || track.url,
-                streamUrl: null // Will be fetched when needed
-            }));
+            // ... rest of the implementation
+            */
         } catch (error) {
-            console.error('SoundCloud search error:', error);
+            console.error('SoundCloud search error:', error.message);
+            console.error('Full error:', error);
             // Return empty array if search fails
             return [];
         }

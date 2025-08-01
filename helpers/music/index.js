@@ -56,24 +56,24 @@ class MusicManager {
         };
 
         try {
-            // Search SoundCloud and Spotify only (no YouTube)
-            const [soundcloudResults, spotifyResults] = await Promise.allSettled([
-                this.searchSoundCloud(query),
-                this.searchSpotify(query)
+            // For search queries, prioritize Spotify since SpotDL works better with Spotify URLs
+            const [spotifyResults, soundcloudResults] = await Promise.allSettled([
+                this.searchSpotify(query),
+                this.searchSoundCloud(query)
             ]);
 
-            if (soundcloudResults.status === 'fulfilled') {
-                results.soundcloud = soundcloudResults.value;
-            }
-            
             if (spotifyResults.status === 'fulfilled') {
                 results.spotify = spotifyResults.value;
             }
+            
+            if (soundcloudResults.status === 'fulfilled') {
+                results.soundcloud = soundcloudResults.value;
+            }
 
-            // Combine results with SoundCloud first, then Spotify
+            // Combine results with Spotify first (since SpotDL works better with Spotify), then SoundCloud
             const combined = [
-                ...results.soundcloud,
-                ...results.spotify
+                ...results.spotify,
+                ...results.soundcloud
             ];
 
             return combined.slice(0, 10); // Limit to 10 total results

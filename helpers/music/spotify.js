@@ -5,7 +5,7 @@ const execAsync = promisify(exec);
 class SpotifySearcher {
     async getTrackInfo(url) {
         try {
-            // Use spotdl to get track info and metadata
+            // Use spotdl save operation to get track info and metadata
             const { stdout } = await execAsync(`spotdl save "${url}" --save-file -`, {
                 timeout: 30000 // 30 second timeout
             });
@@ -45,47 +45,31 @@ class SpotifySearcher {
 
     async search(query, limit = 5) {
         try {
-            // Enhance query for music content
-            const musicQuery = this.enhanceQueryForMusic(query);
+            // For now, return empty array since SpotDL save is not designed for searching
+            // SpotDL works with Spotify URLs, not search queries
+            console.log('Spotify search: SpotDL save operation is not suitable for search queries');
+            console.log('Recommend implementing Spotify Web API for proper search functionality');
+            return [];
             
-            // Use spotdl to search Spotify with music-specific filters
-            const { stdout } = await execAsync(`spotdl save "${musicQuery}" --save-file - --dont-filter-results --max-retries 1`, {
+            /* 
+            // This approach doesn't work for search - save is for known URLs
+            const musicQuery = this.enhanceQueryForMusic(query);
+            const command = `spotdl save "${musicQuery}" --save-file -`;
+            console.log(`Spotify search command: ${command}`);
+            
+            const { stdout, stderr } = await execAsync(command, {
                 timeout: 30000 // 30 second timeout
             });
             
-            if (!stdout || stdout.trim() === '') {
-                return [];
-            }
-            
-            // Filter out non-JSON lines (like "Processing..." messages)
-            const cleanOutput = this.extractJsonFromOutput(stdout);
-            if (!cleanOutput) {
-                return [];
-            }
-            
-            const results = JSON.parse(cleanOutput);
-            
-            // Handle both single result and array of results
-            const tracks = Array.isArray(results) ? results : [results];
-            
-            // Filter to ensure we only get music tracks
-            const musicTracks = this.filterMusicTracks(tracks);
-            
-            return musicTracks.slice(0, limit).map(track => ({
-                title: `${track.artists?.join(', ') || 'Unknown Artist'} - ${track.name || 'Unknown Title'}`,
-                url: track.external_urls?.spotify || track.url,
-                duration: this.formatDuration(track.duration_ms || track.duration * 1000 || 0),
-                thumbnail: track.album?.images?.[0]?.url || track.cover_url,
-                source: 'spotify',
-                id: track.id,
-                streamUrl: null // Will be fetched when needed
-            }));
+            // ... rest of the implementation
+            */
         } catch (error) {
             if (error.message.includes('spotdl')) {
                 console.log('SpotDL not installed - Spotify search unavailable');
                 console.log('Install SpotDL for Spotify support: pip install spotdl');
             } else {
-                console.error('Spotify search error:', error);
+                console.error('Spotify search error:', error.message);
+                console.error('Full error:', error);
             }
             return [];
         }
