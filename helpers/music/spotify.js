@@ -7,89 +7,53 @@ class SpotifySearcher {
         try {
             console.log(`Getting Spotify track info for: ${url}`);
             
-            // Test different spotdl commands to see what works
-            console.log('Testing spotdl commands...');
+            // Use spotdl save command - we know this works
+            const command = `spotdl save "${url}" --save-file -`;
+            console.log(`Executing command: ${command}`);
             
-            // Try save command first
-            try {
-                const saveCommand = `spotdl save "${url}" --save-file -`;
-                console.log(`Trying save command: ${saveCommand}`);
-                
-                const { stdout: saveStdout, stderr: saveStderr } = await execAsync(saveCommand, {
-                    timeout: 30000
-                });
-                
-                console.log('Save command stdout:', saveStdout);
-                console.log('Save command stderr:', saveStderr);
-                
-                if (saveStdout && saveStdout.trim() !== '') {
-                    // Try to parse as JSON or spotdl format
-                    const cleanOutput = this.extractJsonFromOutput(saveStdout);
-                    if (cleanOutput) {
-                        const result = JSON.parse(cleanOutput);
-                        const track = Array.isArray(result) ? result[0] : result;
-                        
-                        if (track) {
-                            const trackInfo = {
-                                title: `${track.artists?.join(', ') || 'Unknown Artist'} - ${track.name || 'Unknown Title'}`,
-                                url: url,
-                                duration: this.formatDuration(track.duration_ms || track.duration * 1000 || 0),
-                                thumbnail: track.album?.images?.[0]?.url || track.cover_url,
-                                source: 'spotify',
-                                id: track.id,
-                                searchQuery: `${track.artists?.join(' ') || ''} ${track.name || ''}`.trim(),
-                                streamUrl: null
-                            };
-                            
-                            console.log('Successfully parsed track info from save:', trackInfo);
-                            return trackInfo;
-                        }
-                    }
-                }
-            } catch (saveError) {
-                console.log('Save command failed:', saveError.message);
+            const { stdout, stderr } = await execAsync(command, {
+                timeout: 30000
+            });
+            
+            if (stderr && stderr.trim() !== '') {
+                console.log('SpotDL stderr:', stderr);
             }
             
-            // If save doesn't work, try just downloading metadata
-            try {
-                const downloadCommand = `spotdl download "${url}" --print-errors --output-format json`;
-                console.log(`Trying download command: ${downloadCommand}`);
-                
-                const { stdout: dlStdout, stderr: dlStderr } = await execAsync(downloadCommand, {
-                    timeout: 30000
-                });
-                
-                console.log('Download command stdout:', dlStdout);
-                console.log('Download command stderr:', dlStderr);
-                
-                if (dlStdout && dlStdout.trim() !== '') {
-                    const cleanOutput = this.extractJsonFromOutput(dlStdout);
-                    if (cleanOutput) {
-                        const result = JSON.parse(cleanOutput);
-                        const track = Array.isArray(result) ? result[0] : result;
-                        
-                        if (track) {
-                            const trackInfo = {
-                                title: `${track.artists?.join(', ') || 'Unknown Artist'} - ${track.name || 'Unknown Title'}`,
-                                url: url,
-                                duration: this.formatDuration(track.duration_ms || track.duration * 1000 || 0),
-                                thumbnail: track.album?.images?.[0]?.url || track.cover_url,
-                                source: 'spotify',
-                                id: track.id,
-                                searchQuery: `${track.artists?.join(' ') || ''} ${track.name || ''}`.trim(),
-                                streamUrl: null
-                            };
-                            
-                            console.log('Successfully parsed track info from download:', trackInfo);
-                            return trackInfo;
-                        }
-                    }
-                }
-            } catch (downloadError) {
-                console.log('Download command failed:', downloadError.message);
+            if (!stdout || stdout.trim() === '') {
+                console.log('No stdout output from spotdl save command');
+                return null;
             }
             
-            console.log('All spotdl commands failed to get track info');
+            console.log('Raw output length:', stdout.length);
+            
+            // Extract JSON from the output
+            const cleanOutput = this.extractJsonFromOutput(stdout);
+            if (!cleanOutput) {
+                console.log('No valid JSON extracted from output');
+                return null;
+            }
+            
+            console.log('Parsing extracted JSON...');
+            const result = JSON.parse(cleanOutput);
+            const track = Array.isArray(result) ? result[0] : result;
+            
+            if (track) {
+                const trackInfo = {
+                    title: `${track.artists?.join(', ') || 'Unknown Artist'} - ${track.name || 'Unknown Title'}`,
+                    url: url,
+                    duration: this.formatDuration((track.duration || 0) * 1000), // duration is in seconds
+                    thumbnail: track.cover_url,
+                    source: 'spotify',
+                    id: track.song_id || track.id,
+                    searchQuery: `${track.artists?.join(' ') || ''} ${track.name || ''}`.trim(),
+                    streamUrl: null
+                };
+                
+                console.log('Successfully created track info:', trackInfo);
+                return trackInfo;
+            }
+            
+            console.log('No track data found in parsed result');
             return null;
             
         } catch (error) {
@@ -134,62 +98,63 @@ class SpotifySearcher {
     extractJsonFromOutput(output) {
         try {
             console.log(`Extracting JSON from output (length: ${output.length})`);
-            console.log('Raw output sample:', output.substring(0, 200));
             
             // Split by lines and find the JSON content
             const lines = output.split('\n');
             console.log(`Output has ${lines.length} lines`);
             
-            // Look for lines that start with { or [ (JSON)
-            for (let i = 0; i < lines.length; i++) {
-                const line = lines[i];
-                const trimmed = line.trim();
-                console.log(`Line ${i}: "${trimmed.substring(0, 50)}..."`);
-                
-                if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
-                    // Try to parse this line as JSON
-                    try {
-                        JSON.parse(trimmed);
-                        console.log(`Found valid JSON on line ${i}`);
-                        return trimmed;
-                    } catch (e) {
-                        console.log(`Line ${i} looks like JSON but failed to parse:`, e.message);
-                        continue;
-                    }
-                }
-            }
-            
-            // If no single line works, try to find JSON blocks
+            // Find the start and end of the JSON array/object
             let jsonStart = -1;
             let jsonEnd = -1;
             
             for (let i = 0; i < lines.length; i++) {
                 const trimmed = lines[i].trim();
-                if ((trimmed.startsWith('{') || trimmed.startsWith('[')) && jsonStart === -1) {
+                
+                // Look for the start of JSON ([ or {)
+                if ((trimmed === '[' || trimmed === '{') && jsonStart === -1) {
                     jsonStart = i;
-                    console.log(`JSON block might start at line ${i}`);
+                    console.log(`JSON starts at line ${i}: "${trimmed}"`);
                 }
-                if ((trimmed.endsWith('}') || trimmed.endsWith(']')) && jsonStart !== -1) {
+                
+                // Look for the end of JSON (] or })
+                if ((trimmed === ']' || trimmed === '}') && jsonStart !== -1) {
                     jsonEnd = i;
-                    console.log(`JSON block might end at line ${i}`);
+                    console.log(`JSON ends at line ${i}: "${trimmed}"`);
                     break;
                 }
             }
             
             if (jsonStart !== -1 && jsonEnd !== -1) {
+                // Extract all lines from start to end (inclusive)
                 const jsonLines = lines.slice(jsonStart, jsonEnd + 1);
                 const jsonString = jsonLines.join('\n');
-                console.log(`Trying to parse JSON block: ${jsonString.substring(0, 100)}...`);
+                
+                console.log(`Extracted JSON string (${jsonString.length} chars):`, jsonString.substring(0, 200) + '...');
+                
                 try {
+                    // Validate the JSON
                     JSON.parse(jsonString);
-                    console.log('Successfully parsed JSON block');
+                    console.log('Successfully validated JSON');
                     return jsonString;
-                } catch (e) {
-                    console.log('JSON block failed to parse:', e.message);
+                } catch (parseError) {
+                    console.log('JSON validation failed:', parseError.message);
+                    
+                    // Try to clean up the JSON - sometimes there are trailing commas or other issues
+                    let cleanedJson = jsonString
+                        .replace(/,\s*}/g, '}')  // Remove trailing commas before }
+                        .replace(/,\s*]/g, ']'); // Remove trailing commas before ]
+                    
+                    try {
+                        JSON.parse(cleanedJson);
+                        console.log('Successfully validated cleaned JSON');
+                        return cleanedJson;
+                    } catch (cleanError) {
+                        console.log('Cleaned JSON also failed:', cleanError.message);
+                    }
                 }
             }
             
-            console.log('No valid JSON found in output');
+            console.log('No valid JSON block found');
             return null;
         } catch (error) {
             console.error('Error extracting JSON:', error);

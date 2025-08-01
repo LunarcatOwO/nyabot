@@ -34,50 +34,64 @@ class SoundCloudSearcher {
 
     extractJsonFromOutput(output) {
         try {
+            console.log(`Extracting JSON from output (length: ${output.length})`);
+            
             // Split by lines and find the JSON content
             const lines = output.split('\n');
+            console.log(`Output has ${lines.length} lines`);
             
-            // Look for lines that start with { or [ (JSON)
-            for (const line of lines) {
-                const trimmed = line.trim();
-                if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
-                    // Try to parse this line as JSON
-                    try {
-                        JSON.parse(trimmed);
-                        return trimmed;
-                    } catch (e) {
-                        // Not valid JSON, continue
-                        continue;
-                    }
-                }
-            }
-            
-            // If no single line works, try to find JSON blocks
+            // Find the start and end of the JSON array/object
             let jsonStart = -1;
             let jsonEnd = -1;
             
             for (let i = 0; i < lines.length; i++) {
                 const trimmed = lines[i].trim();
-                if ((trimmed.startsWith('{') || trimmed.startsWith('[')) && jsonStart === -1) {
+                
+                // Look for the start of JSON ([ or {)
+                if ((trimmed === '[' || trimmed === '{') && jsonStart === -1) {
                     jsonStart = i;
+                    console.log(`JSON starts at line ${i}: "${trimmed}"`);
                 }
-                if ((trimmed.endsWith('}') || trimmed.endsWith(']')) && jsonStart !== -1) {
+                
+                // Look for the end of JSON (] or })
+                if ((trimmed === ']' || trimmed === '}') && jsonStart !== -1) {
                     jsonEnd = i;
+                    console.log(`JSON ends at line ${i}: "${trimmed}"`);
                     break;
                 }
             }
             
             if (jsonStart !== -1 && jsonEnd !== -1) {
+                // Extract all lines from start to end (inclusive)
                 const jsonLines = lines.slice(jsonStart, jsonEnd + 1);
                 const jsonString = jsonLines.join('\n');
+                
+                console.log(`Extracted JSON string (${jsonString.length} chars):`, jsonString.substring(0, 200) + '...');
+                
                 try {
+                    // Validate the JSON
                     JSON.parse(jsonString);
+                    console.log('Successfully validated JSON');
                     return jsonString;
-                } catch (e) {
-                    // Not valid JSON
+                } catch (parseError) {
+                    console.log('JSON validation failed:', parseError.message);
+                    
+                    // Try to clean up the JSON - sometimes there are trailing commas or other issues
+                    let cleanedJson = jsonString
+                        .replace(/,\s*}/g, '}')  // Remove trailing commas before }
+                        .replace(/,\s*]/g, ']'); // Remove trailing commas before ]
+                    
+                    try {
+                        JSON.parse(cleanedJson);
+                        console.log('Successfully validated cleaned JSON');
+                        return cleanedJson;
+                    } catch (cleanError) {
+                        console.log('Cleaned JSON also failed:', cleanError.message);
+                    }
                 }
             }
             
+            console.log('No valid JSON block found');
             return null;
         } catch (error) {
             console.error('Error extracting JSON:', error);
