@@ -1,5 +1,11 @@
 FROM node:23-alpine
 
+# Install dependencies for music functionality
+RUN apk add --no-cache python3 py3-pip ffmpeg git
+
+# Install yt-dlp and spotdl
+RUN pip3 install yt-dlp spotdl
+
 WORKDIR /app
 
 COPY package*.json ./
