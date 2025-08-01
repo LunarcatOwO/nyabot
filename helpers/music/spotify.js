@@ -5,21 +5,28 @@ const execAsync = promisify(exec);
 class SpotifySearcher {
     async getTrackInfo(url) {
         try {
-            // Use spotdl to get track info and YouTube equivalent
-            const { stdout } = await execAsync(`spotdl search "${url}" --output-format json --max-results 1`);
-            const results = JSON.parse(stdout);
+            // Use spotdl to get track info and metadata
+            const { stdout } = await execAsync(`spotdl save "${url}" --save-file -`, {
+                timeout: 30000 // 30 second timeout
+            });
             
-            if (results.length > 0) {
-                const track = results[0];
+            if (!stdout || stdout.trim() === '') {
+                return null;
+            }
+            
+            const result = JSON.parse(stdout);
+            const track = Array.isArray(result) ? result[0] : result;
+            
+            if (track) {
                 return {
-                    title: `${track.artists.join(', ')} - ${track.name}`,
+                    title: `${track.artists?.join(', ') || 'Unknown Artist'} - ${track.name || 'Unknown Title'}`,
                     url: url, // Original Spotify URL
-                    youtubeUrl: track.youtube_url, // Exact YouTube equivalent
-                    duration: this.formatDuration(track.duration * 1000),
-                    thumbnail: track.cover_url,
+                    duration: this.formatDuration(track.duration_ms || track.duration * 1000 || 0),
+                    thumbnail: track.album?.images?.[0]?.url || track.cover_url,
                     source: 'spotify',
                     id: track.id,
-                    searchQuery: `${track.artists.join(' ')} ${track.name}`
+                    searchQuery: `${track.artists?.join(' ') || ''} ${track.name || ''}`.trim(),
+                    streamUrl: null // Will be fetched when needed
                 };
             }
             
@@ -36,20 +43,30 @@ class SpotifySearcher {
             const musicQuery = this.enhanceQueryForMusic(query);
             
             // Use spotdl to search Spotify with music-specific filters
-            const { stdout } = await execAsync(`spotdl search "${musicQuery}" --output-format json --max-results ${limit} --audio-format mp3 --audio-quality best`);
+            const { stdout } = await execAsync(`spotdl save "${musicQuery}" --save-file - --dont-filter-results --max-retries 1`, {
+                timeout: 30000 // 30 second timeout
+            });
+            
+            if (!stdout || stdout.trim() === '') {
+                return [];
+            }
+            
             const results = JSON.parse(stdout);
             
+            // Handle both single result and array of results
+            const tracks = Array.isArray(results) ? results : [results];
+            
             // Filter to ensure we only get music tracks
-            const musicTracks = this.filterMusicTracks(results);
+            const musicTracks = this.filterMusicTracks(tracks);
             
             return musicTracks.slice(0, limit).map(track => ({
-                title: `${track.artists.join(', ')} - ${track.name}`,
-                url: track.url,
-                youtubeUrl: track.youtube_url,
-                duration: this.formatDuration(track.duration * 1000),
-                thumbnail: track.cover_url,
+                title: `${track.artists?.join(', ') || 'Unknown Artist'} - ${track.name || 'Unknown Title'}`,
+                url: track.external_urls?.spotify || track.url,
+                duration: this.formatDuration(track.duration_ms || track.duration * 1000 || 0),
+                thumbnail: track.album?.images?.[0]?.url || track.cover_url,
                 source: 'spotify',
-                id: track.id
+                id: track.id,
+                streamUrl: null // Will be fetched when needed
             }));
         } catch (error) {
             if (error.message.includes('spotdl')) {
@@ -59,6 +76,21 @@ class SpotifySearcher {
                 console.error('Spotify search error:', error);
             }
             return [];
+        }
+    }
+
+    async getStreamUrl(trackUrl) {
+        try {
+            // Use SpotDL to get the stream URL for a specific track
+            const { stdout } = await execAsync(`spotdl url "${trackUrl}"`, {
+                timeout: 30000 // 30 second timeout
+            });
+            
+            const streamUrl = stdout.trim();
+            return streamUrl || null;
+        } catch (error) {
+            console.error('Spotify stream URL error:', error);
+            return null;
         }
     }
 
@@ -83,9 +115,9 @@ class SpotifySearcher {
     filterMusicTracks(tracks) {
         return tracks.filter(track => {
             // Filter out non-music content
-            const trackName = track.name?.toLowerCase() || '';
-            const artistNames = track.artists?.join(' ').toLowerCase() || '';
-            const albumName = track.album_name?.toLowerCase() || '';
+            const trackName = (track.name || '').toLowerCase();
+            const artistNames = (track.artists?.join(' ') || '').toLowerCase();
+            const albumName = (track.album?.name || '').toLowerCase();
             
             // Keywords that indicate non-music content
             const nonMusicKeywords = [
@@ -106,13 +138,14 @@ class SpotifySearcher {
             }
             
             // Filter by duration - typical music tracks
-            if (track.duration) {
+            const duration = track.duration_ms ? track.duration_ms / 1000 : (track.duration || 0);
+            if (duration > 0) {
                 // Too short (likely intro/outro/sound effect)
-                if (track.duration < 30) {
+                if (duration < 30) {
                     return false;
                 }
                 // Too long (likely podcast/audiobook/compilation)
-                if (track.duration > 15 * 60) { // 15 minutes
+                if (duration > 15 * 60) { // 15 minutes
                     return false;
                 }
             }

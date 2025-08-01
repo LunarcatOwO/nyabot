@@ -21,41 +21,47 @@ class StreamProvider {
     }
 
     async getSoundCloudStream(song) {
-        // Use SpotDL for SoundCloud if possible, otherwise direct URL
+        // Use SpotDL for SoundCloud streaming
         try {
-            if (song.url.includes('soundcloud.com')) {
-                // Try SpotDL for better quality
-                const { stdout } = await execAsync(`spotdl url "${song.url}" --print-url --audio-format mp3`);
-                if (stdout && stdout.trim()) {
-                    return stdout.trim();
+            if (song.url && (song.url.includes('soundcloud.com') || song.url.includes('open.spotify.com'))) {
+                // Try SpotDL to get the streaming URL
+                const { stdout } = await execAsync(`spotdl url "${song.url}" --audio soundcloud`, {
+                    timeout: 30000 // 30 second timeout
+                });
+                
+                const streamUrl = stdout.trim();
+                if (streamUrl && streamUrl.startsWith('http')) {
+                    return streamUrl;
                 }
             }
         } catch (error) {
-            console.log('SpotDL failed for SoundCloud, using direct URL');
+            console.log('SpotDL failed for SoundCloud stream:', error.message);
         }
         
-        // Fallback to direct URL
-        return song.url;
+        // Fallback - return null if can't get stream
+        return null;
     }
 
     async getSpotifyStream(song) {
         try {
-            // Use SpotDL to get the YouTube equivalent for Spotify tracks
-            if (song.youtubeUrl) {
-                const { stdout } = await execAsync(`spotdl url "${song.url}" --print-url --audio-format mp3`);
-                if (stdout && stdout.trim()) {
-                    return stdout.trim();
+            // Use SpotDL to get the streaming URL for Spotify tracks
+            if (song.url && song.url.includes('spotify.com')) {
+                const { stdout } = await execAsync(`spotdl url "${song.url}"`, {
+                    timeout: 30000 // 30 second timeout
+                });
+                
+                const streamUrl = stdout.trim();
+                if (streamUrl && streamUrl.startsWith('http')) {
+                    return streamUrl;
                 }
             }
             
-            throw new Error('No YouTube equivalent found for Spotify track');
+            throw new Error('No stream URL found for Spotify track');
         } catch (error) {
             console.error('Failed to get Spotify stream:', error.message);
             return null;
         }
     }
 }
-
-module.exports = new StreamProvider();
 
 module.exports = new StreamProvider();
