@@ -3,8 +3,8 @@ FROM node:23-alpine
 # Install dependencies for music functionality
 RUN apk add --no-cache python3 py3-pip ffmpeg git
 
-# Install yt-dlp and spotdl
-RUN pip3 install yt-dlp spotdl
+# Install yt-dlp and spotdl with --break-system-packages to avoid PEP 668 issues
+RUN pip3 install --break-system-packages yt-dlp spotdl
 
 WORKDIR /app
 
