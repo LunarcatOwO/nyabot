@@ -32,11 +32,17 @@ class SpotifySearcher {
 
     async search(query, limit = 5) {
         try {
-            // Use spotdl to search Spotify
-            const { stdout } = await execAsync(`spotdl search "${query}" --output-format json --max-results ${limit}`);
+            // Enhance query for music content
+            const musicQuery = this.enhanceQueryForMusic(query);
+            
+            // Use spotdl to search Spotify with music-specific filters
+            const { stdout } = await execAsync(`spotdl search "${musicQuery}" --output-format json --max-results ${limit} --audio-format mp3 --audio-quality best`);
             const results = JSON.parse(stdout);
             
-            return results.map(track => ({
+            // Filter to ensure we only get music tracks
+            const musicTracks = this.filterMusicTracks(results);
+            
+            return musicTracks.slice(0, limit).map(track => ({
                 title: `${track.artists.join(', ')} - ${track.name}`,
                 url: track.url,
                 youtubeUrl: track.youtube_url,
@@ -54,6 +60,70 @@ class SpotifySearcher {
             }
             return [];
         }
+    }
+
+    enhanceQueryForMusic(query) {
+        // Don't modify if it's already a Spotify URL
+        if (query.includes('spotify.com')) {
+            return query;
+        }
+        
+        // Spotify is music-focused, but we can filter for songs vs podcasts
+        const trackTerms = ['song', 'track', 'music', 'single', 'album'];
+        const hasTrack = trackTerms.some(term => query.toLowerCase().includes(term));
+        
+        if (!hasTrack) {
+            // Add track context to avoid podcasts/audiobooks
+            return `track:"${query}"`;
+        }
+        
+        return query;
+    }
+
+    filterMusicTracks(tracks) {
+        return tracks.filter(track => {
+            // Filter out non-music content
+            const trackName = track.name?.toLowerCase() || '';
+            const artistNames = track.artists?.join(' ').toLowerCase() || '';
+            const albumName = track.album_name?.toLowerCase() || '';
+            
+            // Keywords that indicate non-music content
+            const nonMusicKeywords = [
+                'podcast', 'audiobook', 'interview', 'talk', 'speech',
+                'commentary', 'review', 'meditation', 'sleep', 'nature sounds',
+                'white noise', 'rain sounds', 'ocean sounds', 'asmr'
+            ];
+            
+            // Check if it's likely non-music content
+            const hasNonMusic = nonMusicKeywords.some(keyword => 
+                trackName.includes(keyword) || 
+                artistNames.includes(keyword) || 
+                albumName.includes(keyword)
+            );
+            
+            if (hasNonMusic) {
+                return false;
+            }
+            
+            // Filter by duration - typical music tracks
+            if (track.duration) {
+                // Too short (likely intro/outro/sound effect)
+                if (track.duration < 30) {
+                    return false;
+                }
+                // Too long (likely podcast/audiobook/compilation)
+                if (track.duration > 15 * 60) { // 15 minutes
+                    return false;
+                }
+            }
+            
+            return true;
+        }).sort((a, b) => {
+            // Prioritize tracks with higher popularity if available
+            const aPopularity = a.popularity || 0;
+            const bPopularity = b.popularity || 0;
+            return bPopularity - aPopularity;
+        });
     }
 
     formatDuration(ms) {
