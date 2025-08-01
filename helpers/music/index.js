@@ -1,6 +1,6 @@
-const youtubeSearcher = require('./youtube');
 const soundcloudSearcher = require('./soundcloud');
 const spotifySearcher = require('./spotify');
+const youtubeFallback = require('./youtube-fallback');
 const streamProvider = require('./stream');
 const queueManager = require('./queue');
 const voiceManager = require('./voice');
@@ -16,7 +16,21 @@ class MusicManager {
     }
 
     async searchYouTube(query, limit = 5) {
-        return await youtubeSearcher.search(query, limit);
+        // YouTube support removed - return empty array
+        console.log('YouTube search attempted but not supported. Use SoundCloud or Spotify instead.');
+        return [];
+    }
+
+    async handleYouTubeUrl(url) {
+        // Instead of playing YouTube directly, find alternatives
+        try {
+            console.log('YouTube URL detected, searching for alternatives...');
+            const alternative = await youtubeFallback.findBestAlternative(url);
+            return alternative;
+        } catch (error) {
+            console.error('Failed to find YouTube alternative:', error.message);
+            return null;
+        }
     }
 
     async searchSoundCloud(query, limit = 5) {
@@ -37,23 +51,17 @@ class MusicManager {
 
     async searchAll(query) {
         const results = {
-            youtube: [],
             soundcloud: [],
             spotify: []
         };
 
         try {
-            // Search all platforms in parallel
-            const [youtubeResults, soundcloudResults, spotifyResults] = await Promise.allSettled([
-                this.searchYouTube(query),
+            // Search SoundCloud and Spotify only (no YouTube)
+            const [soundcloudResults, spotifyResults] = await Promise.allSettled([
                 this.searchSoundCloud(query),
                 this.searchSpotify(query)
             ]);
 
-            if (youtubeResults.status === 'fulfilled') {
-                results.youtube = youtubeResults.value;
-            }
-            
             if (soundcloudResults.status === 'fulfilled') {
                 results.soundcloud = soundcloudResults.value;
             }
@@ -62,16 +70,15 @@ class MusicManager {
                 results.spotify = spotifyResults.value;
             }
 
-            // Combine results with YouTube first, then others
+            // Combine results with SoundCloud first, then Spotify
             const combined = [
-                ...results.youtube,
                 ...results.soundcloud,
                 ...results.spotify
             ];
 
             return combined.slice(0, 10); // Limit to 10 total results
         } catch (error) {
-            console.error('Error searching all platforms:', error);
+            console.error('Error searching platforms:', error);
             return [];
         }
     }

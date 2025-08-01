@@ -1,49 +1,32 @@
-const YTDlpWrap = require('yt-dlp-wrap').default;
+const { exec } = require('child_process');
+const { promisify } = require('util');
+const execAsync = promisify(exec);
 
 class SoundCloudSearcher {
-    constructor() {
-        this.ytDlp = new YTDlpWrap();
-    }
 
     async search(query, limit = 5) {
         try {
             // Enhance query for music content on SoundCloud
             const musicQuery = this.enhanceQueryForMusic(query);
             
-            // Use yt-dlp to search SoundCloud with music-specific parameters
-            const searchResults = await this.ytDlp.execPromise([
-                '--flat-playlist',
-                '--dump-json',
-                `ytsearch${limit * 2}:${musicQuery} site:soundcloud.com`,
-                '--no-warnings',
-                '--extractor-args', 'soundcloud:client_id=null' // Use default client
-            ]);
-            
-            const results = searchResults.split('\n')
-                .filter(line => line.trim())
-                .map(line => {
-                    try {
-                        return JSON.parse(line);
-                    } catch {
-                        return null;
-                    }
-                })
-                .filter(result => result && result.url)
-                .slice(0, limit * 2);
+            // Use SpotDL to search SoundCloud with music-specific parameters
+            const { stdout } = await execAsync(`spotdl search "${musicQuery}" --source soundcloud --output-format json --max-results ${limit} --audio-format mp3`);
+            const results = JSON.parse(stdout);
 
             // Filter and prioritize music content
             const musicResults = this.filterMusicContent(results);
 
             return musicResults.slice(0, limit).map(track => ({
-                title: track.title || 'Unknown Title',
+                title: track.name || track.title || 'Unknown Title',
                 url: track.url,
                 duration: this.formatDuration((track.duration || 0) * 1000),
-                thumbnail: track.thumbnail,
+                thumbnail: track.thumbnail || track.cover_url,
                 source: 'soundcloud',
                 id: track.id || track.url
             }));
         } catch (error) {
             console.error('SoundCloud search error:', error);
+            // Fallback to direct SoundCloud search if SpotDL fails
             return [];
         }
     }

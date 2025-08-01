@@ -56,15 +56,25 @@ exports.execute = async (ctx) => {
         // Search for songs
         let searchResults = [];
         
-        // Check if it's a direct URL with better detection
+        // Check if it's a YouTube URL and find alternatives
         if (query.includes('youtube.com') || query.includes('youtu.be')) {
-            // Direct YouTube URL
-            const youtubeSearcher = require('../../../../helpers/music/youtube');
-            const video = await youtubeSearcher.getVideo(query.trim());
-            if (video) {
-                searchResults = [video];
-            } else {
-                return { content: '❌ Could not find that YouTube video. Please check the URL.' };
+            try {
+                const alternative = await musicManager.handleYouTubeUrl(query.trim());
+                if (alternative) {
+                    // Add the best alternative directly to queue
+                    const position = await musicManager.addToQueue(ctx.guild.id, alternative);
+                    
+                    if (position === 1 && !musicManager.isPlaying(ctx.guild.id)) {
+                        await musicManager.play(ctx.guild.id);
+                        return { content: `🎵 **YouTube alternative found!** Now playing: **${alternative.title}** from ${alternative.platform} (${Math.round(alternative.similarity * 100)}% match)` };
+                    } else {
+                        return { content: `➕ **YouTube alternative found!** Added to queue (position ${position}): **${alternative.title}** from ${alternative.platform} (${Math.round(alternative.similarity * 100)}% match)` };
+                    }
+                } else {
+                    return { content: '❌ YouTube links are not supported. Could not find this song on SoundCloud or Spotify. Please search directly or use a SoundCloud/Spotify link.' };
+                }
+            } catch (error) {
+                return { content: '❌ YouTube links are not supported. Could not find this song on SoundCloud or Spotify. Please search directly or use a SoundCloud/Spotify link.' };
             }
         } else if (query.includes('soundcloud.com')) {
             // Direct SoundCloud URL - add to queue directly
@@ -101,15 +111,10 @@ exports.execute = async (ctx) => {
                 return { content: '❌ Could not fetch Spotify track information!' };
             }
         } else {
-            // Search all platforms
-            searchResults = await musicManager.searchYouTube(query);
+            // Search SoundCloud and Spotify only (no YouTube)
+            searchResults = await musicManager.searchSoundCloud(query);
             
-            // If no YouTube results, try SoundCloud
-            if (searchResults.length === 0) {
-                searchResults = await musicManager.searchSoundCloud(query);
-            }
-            
-            // If still no results, try Spotify
+            // If no SoundCloud results, try Spotify
             if (searchResults.length === 0) {
                 searchResults = await musicManager.searchSpotify(query);
             }

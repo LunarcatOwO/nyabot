@@ -2,7 +2,7 @@ FROM node:23-alpine
 
 # Install dependencies for music functionality and build tools
 RUN apk add --no-cache python3 py3-pip ffmpeg git curl wget build-base && \
-    pip3 install --break-system-packages --upgrade yt-dlp spotdl youtube-dl && \
+    pip3 install --break-system-packages --upgrade spotdl && \
     apk del build-base
 
 WORKDIR /app
