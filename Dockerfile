@@ -4,7 +4,8 @@ FROM node:23-alpine
 RUN apk add --no-cache python3 py3-pip ffmpeg git
 
 # Install yt-dlp and spotdl with --break-system-packages to avoid PEP 668 issues
-RUN pip3 install --break-system-packages yt-dlp spotdl
+# Also update yt-dlp to latest version to help with YouTube bot detection
+RUN pip3 install --break-system-packages --upgrade yt-dlp spotdl
 
 WORKDIR /app
 

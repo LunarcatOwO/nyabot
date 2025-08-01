@@ -20,6 +20,13 @@ exports.execute = async (ctx) => {
         };
     }
 
+    // Reset inactivity timer on play command
+    musicManager.onActivity(ctx.guild.id);
+
+    // Store the text channel for potential auto-disconnect notifications
+    const voiceManager = require('../../../../helpers/music/voice');
+    voiceManager.setLastChannel(ctx.guild.id, ctx.channel);
+
     // Check if bot has permissions
     const botPermissions = ctx.member.voice.channel.permissionsFor(ctx.guild.members.me);
     if (!botPermissions.has(['Connect', 'Speak'])) {
@@ -43,7 +50,7 @@ exports.execute = async (ctx) => {
         // Join voice channel if not already connected
         const connection = musicManager.connections.get(ctx.guild.id);
         if (!connection) {
-            await musicManager.joinChannel(ctx.member.voice.channel);
+            await musicManager.joinChannel(ctx.member.voice.channel, ctx.channel);
         }
 
         // Search for songs

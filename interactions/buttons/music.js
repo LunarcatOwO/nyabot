@@ -12,6 +12,9 @@ module.exports = {
             });
         }
 
+        // Reset inactivity timer on any music interaction
+        musicManager.onActivity(interaction.guild.id);
+
         const action = interaction.customId.split('_')[1];
 
         switch (action) {

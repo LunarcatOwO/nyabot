@@ -11,6 +11,9 @@ exports.execute = async (ctx) => {
         };
     }
 
+    // Reset inactivity timer on user interaction
+    musicManager.onActivity(ctx.guild.id);
+
     if (musicManager.pause(ctx.guild.id)) {
         return { content: '⏸️ Music paused.' };
     } else {
