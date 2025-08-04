@@ -32,15 +32,16 @@ class MusicManager {
                 tokens.soundcloud = {
                     client_id: process.env.SOUNDCLOUD_CLIENT_ID
                 };
+                console.log('🎵 SoundCloud credentials configured');
             }
             
             if (process.env.SPOTIFY_CLIENT_ID && process.env.SPOTIFY_CLIENT_SECRET) {
                 tokens.spotify = {
                     client_id: process.env.SPOTIFY_CLIENT_ID,
                     client_secret: process.env.SPOTIFY_CLIENT_SECRET,
-                    refresh_token: process.env.SPOTIFY_REFRESH_TOKEN,
                     market: 'US'
                 };
+                console.log('🎵 Spotify credentials configured');
             }
             
             if (Object.keys(tokens).length > 0) {
@@ -138,16 +139,22 @@ class MusicManager {
         try {
             if (play.sp_validate(url) === 'track') {
                 // Spotify track
-                const info = await play.spotify(url);
-                return [{
-                    title: info.name,
-                    artist: info.artists.map(a => a.name).join(', '),
-                    url: url,
-                    duration: this.formatDuration(info.durationInMs),
-                    thumbnail: info.thumbnail?.url,
-                    source: 'spotify',
-                    playable: true
-                }];
+                try {
+                    const info = await play.spotify(url);
+                    return [{
+                        title: info.name,
+                        artist: info.artists.map(a => a.name).join(', '),
+                        url: url,
+                        duration: this.formatDuration(info.durationInMs),
+                        thumbnail: info.thumbnail?.url,
+                        source: 'spotify',
+                        playable: true
+                    }];
+                } catch (spotifyError) {
+                    console.error('Spotify URL handling failed:', spotifyError.message);
+                    // If Spotify fails, try to search for the track on other platforms
+                    throw new Error('Spotify authentication failed. Please check your Spotify credentials in the environment variables.');
+                }
             } else if (play.so_validate(url) === 'track') {
                 // SoundCloud track
                 const info = await play.soundcloud(url);
