@@ -1,20 +1,38 @@
 const { EmbedBuilder } = require('discord.js');
 
 exports.name = 'music';
-exports.description = 'Music player commands';
+exports.description = 'Advanced music player with YouTube support';
 exports.category = 'Music';
 
 exports.execute = async (ctx) => {
     const embed = new EmbedBuilder()
         .setColor('#FF6B9D')
-        .setTitle('🎵 Music Commands')
-        .setDescription('Use the music player to play **songs and music tracks** from SoundCloud and Spotify!')
+        .setTitle('🎵 Music Player Commands')
+        .setDescription('**Professional music bot with YouTube, SoundCloud & Spotify support!**')
         .addFields(
-            { name: 'Playback', value: '`/music play <song>` - Play or search for music tracks\n`/music pause` - Pause playback\n`/music resume` - Resume playback\n`/music stop` - Stop and clear queue\n`/music skip` - Skip current song', inline: false },
-            { name: 'Queue', value: '`/music queue` - Show the music queue\n`/music shuffle` - Toggle shuffle mode\n`/music loop` - Toggle loop mode', inline: false },
-            { name: 'Controls', value: '`/music controls` - Interactive player controls\n`/music nowplaying` - Show current song\n`/music volume <0-100>` - Set volume\n`/music leave` - Leave voice channel', inline: false }
+            { 
+                name: '🎯 Playback Controls', 
+                value: '`/play <song>` - Play or search for music\n`/pause` - Pause current track\n`/resume` - Resume playback\n`/skip` - Skip to next track\n`/stop` - Stop and clear queue\n`/leave` - Leave voice channel', 
+                inline: false 
+            },
+            { 
+                name: '📋 Queue Management', 
+                value: '`/queue` - Show current queue\n`/nowplaying` - Show current track\n`/remove <position>` - Remove track from queue\n`/clear` - Clear entire queue\n`/shuffle` - Shuffle the queue', 
+                inline: false 
+            },
+            { 
+                name: '🔧 Settings', 
+                value: '`/volume <1-200>` - Set volume level\n`/loop <off/track/queue>` - Set loop mode\n`/seek <time>` - Seek to specific time\n`/lyrics` - Get lyrics for current song', 
+                inline: false 
+            },
+            { 
+                name: '🌟 Features', 
+                value: '✅ YouTube, SoundCloud & Spotify\n✅ High quality audio\n✅ Queue management\n✅ Loop & shuffle modes\n✅ Volume control (up to 200%)\n✅ Auto-disconnect after 5min inactivity', 
+                inline: false 
+            }
         )
-        .setFooter({ text: 'YouTube URLs will find alternatives on SoundCloud/Spotify automatically!' });
+        .setFooter({ text: 'Use /help music for detailed command information' })
+        .setTimestamp();
 
     return { embeds: [embed] };
 };

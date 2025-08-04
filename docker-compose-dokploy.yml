@@ -10,6 +10,9 @@ services:
       - ROOT_USR=${ROOT_USR}
       - SENTRY_DSN=${SENTRY_DSN}
       - HOME_GUILD=${HOME_GUILD}
+      - SOUNDCLOUD_CLIENT_ID=${SOUNDCLOUD_CLIENT_ID}
+      - SPOTIFY_CLIENT_ID=${SPOTIFY_CLIENT_ID}
+      - SPOTIFY_CLIENT_SECRET=${SPOTIFY_CLIENT_SECRET}
       - ENV=production
     networks:
       - dokploy-network

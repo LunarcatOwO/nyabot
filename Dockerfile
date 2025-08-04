@@ -1,21 +1,21 @@
 FROM node:current-alpine
 
-# Install dependencies for music functionality and build tools
-RUN apk add --no-cache python3 py3-pip ffmpeg git build-base
-
-# Install SpotDL and YT-DLP separately with longer timeout and better error handling
-RUN pip3 install --break-system-packages --upgrade --timeout 300 yt-dlp && \
-    pip3 install --break-system-packages --upgrade --timeout 300 spotdl || \
-    (echo "SpotDL installation failed, retrying..." && sleep 5 && pip3 install --break-system-packages --upgrade --timeout 300 spotdl)
-
-# Clean up build dependencies and create temp directory
-RUN apk del build-base && \
-    mkdir -p /tmp/nyabot-music
+# Install only runtime dependencies for music functionality
+RUN apk add --no-cache ffmpeg
 
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci --only=production --ignore-optional || npm install --only=production --ignore-optional
+
+# Install build dependencies, run npm install, then remove build dependencies in one layer
+# This keeps the final image smaller while still allowing native compilation
+RUN apk add --no-cache --virtual .build-deps \
+    git \
+    build-base \
+    python3 \
+    make \
+    && npm ci --only=production --ignore-optional \
+    && apk del .build-deps
 
 COPY commands/ ./commands/
 COPY interactions/ ./interactions/

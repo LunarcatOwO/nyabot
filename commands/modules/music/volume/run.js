@@ -1,4 +1,4 @@
-const musicManager = require('../../../../helpers/music');
+const { MusicManager } = require('../../../../helpers/music');
 
 exports.description = 'Set the volume (0-100)';
 exports.options = [
@@ -21,6 +21,14 @@ exports.execute = async (ctx) => {
         };
     }
 
+    // Check if bot is connected to a voice channel in this guild
+    if (!MusicManager.isConnected(ctx.guild.id)) {
+        return {
+            content: '❌ I\'m not playing any music right now!',
+            ephemeral: true
+        };
+    }
+
     let level;
     if (ctx.isSlashCommand) {
         level = ctx.options.getInteger('level');
@@ -34,6 +42,14 @@ exports.execute = async (ctx) => {
         }
     }
 
-    const volume = musicManager.setVolume(ctx.guild.id, level / 100);
-    return { content: `🔊 Volume set to ${Math.round(volume * 100)}%` };
+    try {
+        const volume = MusicManager.setVolume(ctx.guild.id, level / 100);
+        return { content: `🔊 Volume set to ${Math.round(volume * 100)}%` };
+    } catch (error) {
+        console.error('Volume command error:', error);
+        return {
+            content: '❌ An error occurred while setting volume.',
+            ephemeral: true
+        };
+    }
 };

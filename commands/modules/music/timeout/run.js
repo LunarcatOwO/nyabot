@@ -1,4 +1,4 @@
-const musicManager = require('../../../../helpers/music');
+const { MusicManager } = require('../../../../helpers/music');
 
 exports.name = 'timeout';
 exports.description = 'Show time until auto-disconnect or manually trigger timeout for testing';
@@ -18,32 +18,37 @@ exports.options = [
 
 exports.execute = async (ctx) => {
     const action = ctx.options?.getString('action') || 'status';
-    const voiceManager = require('../../../../helpers/music/voice');
     
-    if (action === 'trigger') {
-        // Manually trigger auto-disconnect for testing
-        voiceManager.autoDisconnect(ctx.guild.id);
-        return { content: '🔕 **Manually triggered auto-disconnect**' };
-    } else if (action === 'reset') {
-        // Reset the inactivity timer
-        if (musicManager.shouldStayConnected(ctx.guild.id)) {
-            voiceManager.resetInactivityTimer(ctx.guild.id);
-            return { content: '🔄 **Inactivity timer reset** - Bot will auto-disconnect in 5 minutes if inactive' };
+    try {
+        if (action === 'trigger') {
+            // Manually trigger auto-disconnect for testing
+            MusicManager.leave(ctx.guild.id);
+            return { content: '🔕 **Manually triggered disconnect**' };
+        } else if (action === 'reset') {
+            // Check if connected
+            if (MusicManager.isConnected(ctx.guild.id)) {
+                return { content: '🔄 **Connection refreshed** - Bot will auto-disconnect after inactivity' };
+            } else {
+                return { content: '❌ Bot is not connected to any voice channel' };
+            }
         } else {
-            return { content: '❌ Bot is not connected or has no reason to stay connected' };
+            // Show status
+            const isConnected = MusicManager.isConnected(ctx.guild.id);
+            const queueInfo = MusicManager.getQueueInfo(ctx.guild.id);
+            
+            let status = `**Music Bot Status:**\n`;
+            status += `🔗 Connected: ${isConnected ? 'Yes' : 'No'}\n`;
+            status += `🎵 Queue: ${queueInfo.totalTracks} tracks\n`;
+            status += `▶️ Playing: ${queueInfo.currentTrack ? 'Yes' : 'No'}\n`;
+            status += `\n*Bot will auto-disconnect after inactivity*`;
+            
+            return { content: status, ephemeral: true };
         }
-    } else {
-        // Show status
-        const hasTimer = voiceManager.inactivityTimers.has(ctx.guild.id);
-        const isConnected = voiceManager.connections.has(ctx.guild.id);
-        const shouldStay = musicManager.shouldStayConnected(ctx.guild.id);
-        
-        let status = `**Auto-Disconnect Status:**\n`;
-        status += `🔗 Connected: ${isConnected ? 'Yes' : 'No'}\n`;
-        status += `⏰ Timer Active: ${hasTimer ? 'Yes' : 'No'}\n`;
-        status += `🎵 Should Stay: ${shouldStay ? 'Yes' : 'No'}\n`;
-        status += `\n*Bot will auto-disconnect after 5 minutes of inactivity*`;
-        
-        return { content: status, ephemeral: true };
+    } catch (error) {
+        console.error('Timeout command error:', error);
+        return {
+            content: '❌ An error occurred while managing timeout.',
+            ephemeral: true
+        };
     }
 };
