@@ -1,0 +1,131 @@
+name: Clear All Caches
+
+on:
+  workflow_dispatch:
+    inputs:
+      cache_type:
+        description: 'Type of cache to clear'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+        - all
+        - docker
+        - npm
+        - buildx
+
+jobs:
+  clear-cache:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Clear All Caches
+        if: ${{ github.event.inputs.cache_type == 'all' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "🗑️ Clearing all caches..."
+          
+          # Get all cache entries
+          caches=$(gh api repos/${{ github.repository }}/actions/caches --jq '.actions_caches[].id')
+          
+          if [ -z "$caches" ]; then
+            echo "ℹ️ No caches found to delete"
+          else
+            echo "📋 Found $(echo "$caches" | wc -l) cache entries"
+            
+            # Delete each cache
+            for cache_id in $caches; do
+              echo "🗑️ Deleting cache ID: $cache_id"
+              gh api --method DELETE repos/${{ github.repository }}/actions/caches/$cache_id || true
+            done
+            
+            echo "✅ All caches cleared successfully!"
+          fi
+
+      - name: Clear Docker Caches Only
+        if: ${{ github.event.inputs.cache_type == 'docker' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "🐳 Clearing Docker-related caches..."
+          
+          # Get Docker-related cache entries
+          caches=$(gh api repos/${{ github.repository }}/actions/caches --jq '.actions_caches[] | select(.key | contains("buildx") or contains("docker") or contains("gha")) | .id')
+          
+          if [ -z "$caches" ]; then
+            echo "ℹ️ No Docker caches found to delete"
+          else
+            echo "📋 Found $(echo "$caches" | wc -l) Docker cache entries"
+            
+            for cache_id in $caches; do
+              echo "🗑️ Deleting Docker cache ID: $cache_id"
+              gh api --method DELETE repos/${{ github.repository }}/actions/caches/$cache_id || true
+            done
+            
+            echo "✅ Docker caches cleared successfully!"
+          fi
+
+      - name: Clear NPM Caches Only
+        if: ${{ github.event.inputs.cache_type == 'npm' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "📦 Clearing NPM-related caches..."
+          
+          # Get NPM-related cache entries
+          caches=$(gh api repos/${{ github.repository }}/actions/caches --jq '.actions_caches[] | select(.key | contains("npm") or contains("node")) | .id')
+          
+          if [ -z "$caches" ]; then
+            echo "ℹ️ No NPM caches found to delete"
+          else
+            echo "📋 Found $(echo "$caches" | wc -l) NPM cache entries"
+            
+            for cache_id in $caches; do
+              echo "🗑️ Deleting NPM cache ID: $cache_id"
+              gh api --method DELETE repos/${{ github.repository }}/actions/caches/$cache_id || true
+            done
+            
+            echo "✅ NPM caches cleared successfully!"
+          fi
+
+      - name: Clear Buildx Caches Only
+        if: ${{ github.event.inputs.cache_type == 'buildx' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "🔨 Clearing Buildx-related caches..."
+          
+          # Get Buildx-related cache entries
+          caches=$(gh api repos/${{ github.repository }}/actions/caches --jq '.actions_caches[] | select(.key | contains("buildx")) | .id')
+          
+          if [ -z "$caches" ]; then
+            echo "ℹ️ No Buildx caches found to delete"
+          else
+            echo "📋 Found $(echo "$caches" | wc -l) Buildx cache entries"
+            
+            for cache_id in $caches; do
+              echo "🗑️ Deleting Buildx cache ID: $cache_id"
+              gh api --method DELETE repos/${{ github.repository }}/actions/caches/$cache_id || true
+            done
+            
+            echo "✅ Buildx caches cleared successfully!"
+          fi
+
+      - name: List Remaining Caches
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "📋 Remaining caches after cleanup:"
+          gh api repos/${{ github.repository }}/actions/caches --jq '.actions_caches[] | "\(.key) (Size: \(.size_in_bytes | . / 1024 / 1024 | floor)MB, Created: \(.created_at))"' || echo "ℹ️ No caches remaining"
+
+      - name: Summary
+        run: |
+          echo "🎉 Cache cleanup completed!"
+          echo "💡 Next build will start fresh without any cached layers"
+          echo "⚠️ Note: This will make the next build slower as everything needs to be rebuilt"
