@@ -1,22 +1,27 @@
 FROM node:current-alpine
 
-# Install only runtime dependencies for music functionality
+# Install runtime dependencies first (cached layer)
 RUN apk add --no-cache ffmpeg
 
-WORKDIR /app
-
-COPY package*.json ./
-
-# Install build dependencies, run npm install, then remove build dependencies in one layer
-# This keeps the final image smaller while still allowing native compilation
+# Install build dependencies (cached layer)
 RUN apk add --no-cache --virtual .build-deps \
     git \
     build-base \
     python3 \
-    make \
-    && npm ci --only=production --ignore-optional \
-    && apk del .build-deps
+    make
 
+WORKDIR /app
+
+# Copy package files first for npm cache optimization
+COPY package*.json ./
+
+# Install npm dependencies (benefits from both npm cache and Docker layer cache)
+RUN npm ci --only=production --ignore-optional
+
+# Remove build dependencies (keep image small)
+RUN apk del .build-deps
+
+# Copy application code last (changes most frequently)
 COPY commands/ ./commands/
 COPY interactions/ ./interactions/
 COPY helpers/ ./helpers/
