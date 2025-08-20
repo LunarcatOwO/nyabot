@@ -207,6 +207,21 @@ exports.execute = async (ctx) => {
             };
         }
 
+        // Send to modlog if configured
+        try {
+            const helpers = require('../../../helpers/load');
+            if (helpers.modlog && helpers.modlog.log) {
+                await helpers.modlog.log.sendModLog(ctx.raw.client, ctx.guild.id, {
+                    action: 'warn',
+                    target: targetUser,
+                    moderator: ctx.user,
+                    reason: reason
+                });
+            }
+        } catch (modlogError) {
+            console.error('Failed to send modlog:', modlogError);
+        }
+
         // Get updated warning count
         let warningCount = 0;
         try {

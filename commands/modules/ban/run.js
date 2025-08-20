@@ -205,9 +205,25 @@ exports.execute = async (ctx) => {
         // Store ban information in database for tracking
         try {
             const db = require('../../../helpers/db');
-            await db.logBan(targetUser.id, ctx.guild.id, ctx.user.id, reason);
+            await db.write.logBan(targetUser.id, ctx.guild.id, ctx.user.id, reason);
         } catch (dbError) {
             console.error('Failed to log ban:', dbError);
+        }
+
+        // Send to modlog if configured
+        try {
+            const helpers = require('../../../helpers/load');
+            if (helpers.modlog && helpers.modlog.log) {
+                await helpers.modlog.log.sendModLog(ctx.raw.client, ctx.guild.id, {
+                    action: 'ban',
+                    target: targetUser,
+                    moderator: ctx.user,
+                    reason: reason,
+                    extra: { deleteMessageDays: deleteMessageSeconds / (24 * 60 * 60) }
+                });
+            }
+        } catch (modlogError) {
+            console.error('Failed to send modlog:', modlogError);
         }
 
         // Success response

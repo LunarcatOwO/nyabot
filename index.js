@@ -169,6 +169,98 @@ client.on("guildUpdate", async (oldGuild, newGuild) => {
   }
 });
 
+// Moderation event listeners for Discord native actions
+client.on("guildBanAdd", async (ban) => {
+  console.log(`🔨 User banned: ${ban.user.tag} in ${ban.guild.name}`);
+  
+  try {
+    // Log to database
+    const db = require('./helpers/db');
+    await db.write.logBan(ban.user.id, ban.guild.id, null, ban.reason || 'No reason provided');
+    
+    // Send to modlog if configured
+    if (helpers.modlog && helpers.modlog.log) {
+      await helpers.modlog.log.sendModLog(client, ban.guild.id, {
+        action: 'ban',
+        target: ban.user,
+        moderator: null, // Discord native ban
+        reason: ban.reason || 'No reason provided'
+      });
+    }
+  } catch (error) {
+    console.error('❌ Error handling guild ban add:', error.message);
+  }
+});
+
+client.on("guildBanRemove", async (ban) => {
+  console.log(`🔓 User unbanned: ${ban.user.tag} in ${ban.guild.name}`);
+  
+  try {
+    // Log to database
+    const db = require('./helpers/db');
+    await db.write.logUnban(ban.user.id, ban.guild.id);
+    
+    // Send to modlog if configured
+    if (helpers.modlog && helpers.modlog.log) {
+      await helpers.modlog.log.sendModLog(client, ban.guild.id, {
+        action: 'unban',
+        target: ban.user,
+        moderator: null, // Discord native unban
+        reason: 'User unbanned'
+      });
+    }
+  } catch (error) {
+    console.error('❌ Error handling guild ban remove:', error.message);
+  }
+});
+
+client.on("guildMemberUpdate", async (oldMember, newMember) => {
+  // Check for timeout changes
+  const oldTimeout = oldMember.communicationDisabledUntil;
+  const newTimeout = newMember.communicationDisabledUntil;
+  
+  if (oldTimeout !== newTimeout) {
+    if (newTimeout && newTimeout > new Date()) {
+      // User was timed out
+      console.log(`⏰ User timed out: ${newMember.user.tag} in ${newMember.guild.name}`);
+      
+      try {
+        const duration = helpers.modlog?.log?.formatDuration(newTimeout - new Date()) || 'Unknown';
+        
+        // Send to modlog if configured
+        if (helpers.modlog && helpers.modlog.log) {
+          await helpers.modlog.log.sendModLog(client, newMember.guild.id, {
+            action: 'timeout',
+            target: newMember.user,
+            moderator: null, // Discord native timeout
+            reason: 'User timed out',
+            extra: { duration }
+          });
+        }
+      } catch (error) {
+        console.error('❌ Error handling timeout add:', error.message);
+      }
+    } else if (oldTimeout && oldTimeout > new Date() && (!newTimeout || newTimeout <= new Date())) {
+      // Timeout was removed
+      console.log(`⏰ Timeout removed: ${newMember.user.tag} in ${newMember.guild.name}`);
+      
+      try {
+        // Send to modlog if configured
+        if (helpers.modlog && helpers.modlog.log) {
+          await helpers.modlog.log.sendModLog(client, newMember.guild.id, {
+            action: 'timeout_remove',
+            target: newMember.user,
+            moderator: null, // Discord native
+            reason: 'Timeout removed or expired'
+          });
+        }
+      } catch (error) {
+        console.error('❌ Error handling timeout remove:', error.message);
+      }
+    }
+  }
+});
+
 // Graceful shutdown handling
 const shutdown = async (signal) => {
   console.log(`Received ${signal}, shutting down gracefully...`);
