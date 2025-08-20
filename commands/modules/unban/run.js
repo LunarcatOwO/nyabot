@@ -129,7 +129,7 @@ exports.execute = async (ctx) => {
         // Update database to mark ban as inactive
         try {
             const db = require('../../../helpers/db');
-            await db.logUnban(userInput, ctx.guild.id);
+            await db.write.logUnban(userInput, ctx.guild.id);
         } catch (dbError) {
             console.error('Failed to log unban:', dbError);
         }
@@ -140,6 +140,21 @@ exports.execute = async (ctx) => {
             targetUser = await ctx.raw.client.users.fetch(userInput);
         } catch {
             targetUser = { tag: `Unknown User (${userInput})`, id: userInput };
+        }
+
+        // Send to modlog if configured
+        try {
+            const helpers = require('../../../helpers/load');
+            if (helpers.modlog && helpers.modlog.log) {
+                await helpers.modlog.log.sendModLog(ctx.raw.client, ctx.guild.id, {
+                    action: 'unban',
+                    target: targetUser,
+                    moderator: ctx.user,
+                    reason: reason
+                });
+            }
+        } catch (modlogError) {
+            console.error('Failed to send modlog:', modlogError);
         }
 
         // Success response
